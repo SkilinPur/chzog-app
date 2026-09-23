@@ -4,6 +4,7 @@ import 'api.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme.dart';
+import 'updater.dart';
 
 void main() => runApp(const ChzogApp());
 
@@ -37,6 +38,9 @@ class _RootGateState extends State<RootGate> {
   void initState() {
     super.initState();
     _check();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Updater.check(context);
+    });
   }
 
   Future<void> _check() async {
