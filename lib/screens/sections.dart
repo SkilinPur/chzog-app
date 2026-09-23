@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
-
 import '../api.dart';
 import '../theme.dart';
+import 'webview_screen.dart';
 
 const _titleStyle = TextStyle(color: kText, fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.bold);
 const _subStyle = TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11);
@@ -169,7 +168,12 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
                 Padding(
                   padding: const EdgeInsets.only(top: 12),
                   child: OutlinedButton(
-                    onPressed: () => launchUrl(Uri.parse(ApiClient.base + (d['file_url'] as String))),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => WebViewScreen(
+                        url: ApiClient.base + (d['file_url'] as String),
+                        title: 'ПРИКАЗ · PDF',
+                      ),
+                    )),
                     child: const Text('Открыть PDF', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
                   ),
                 ),
@@ -266,7 +270,9 @@ class LocationDetailScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(top: 14),
                   child: OutlinedButton(
-                    onPressed: () => launchUrl(Uri.parse(l['coords_url'] as String)),
+                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => WebViewScreen(url: l['coords_url'] as String, title: 'КАРТА'),
+                    )),
                     child: const Text('Открыть на карте', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
                   ),
                 ),
