@@ -31,7 +31,7 @@ class RootGate extends StatefulWidget {
 class _RootGateState extends State<RootGate> {
   final _api = ApiClient();
   bool _loading = true;
-  Map<String, dynamic>? _user;
+  Map<String, dynamic>? _summary;
 
   @override
   void initState() {
@@ -41,10 +41,10 @@ class _RootGateState extends State<RootGate> {
 
   Future<void> _check() async {
     try {
-      final user = await _api.me();
-      setState(() => _user = user);
+      final summary = await _api.home();
+      setState(() => _summary = summary);
     } catch (_) {
-      setState(() => _user = null);
+      setState(() => _summary = null);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -55,15 +55,15 @@ class _RootGateState extends State<RootGate> {
     if (_loading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator(color: kAccent)));
     }
-    if (_user == null) {
-      return LoginScreen(api: _api, onLoggedIn: (u) => setState(() => _user = u));
+    if (_summary == null) {
+      return LoginScreen(api: _api, onLoggedIn: (_) => _check());
     }
     return HomeScreen(
       api: _api,
-      user: _user!,
+      summary: _summary!,
       onLogout: () async {
         await _api.logout();
-        setState(() => _user = null);
+        setState(() => _summary = null);
       },
     );
   }

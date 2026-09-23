@@ -119,6 +119,8 @@ class ApiClient {
     return data;
   }
 
+  Future<Map<String, dynamic>> home() async => (await _get('/api/home')) as Map<String, dynamic>;
+
   Future<List<Map<String, dynamic>>> documents() async =>
       ((await _get('/api/documents'))['items'] as List).cast<Map<String, dynamic>>();
 
@@ -150,6 +152,11 @@ class ApiClient {
       ((await _get('/api/notifications'))['items'] as List).cast<Map<String, dynamic>>();
 
   Future<void> notificationsRead() => _postJson('/api/notifications/read', {});
+
+  Future<void> notificationRead(int id) => _postJson('/api/notifications/$id/read', {});
+
+  Future<Map<String, dynamic>> application(int id) async =>
+      (await _get('/api/applications/$id'))['application'] as Map<String, dynamic>;
 
   Future<List<Map<String, dynamic>>> applications() async =>
       ((await _get('/api/applications'))['items'] as List).cast<Map<String, dynamic>>();
