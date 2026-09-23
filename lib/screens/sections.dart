@@ -355,48 +355,178 @@ class LocationDetailScreen extends StatelessWidget {
 
 // ==================== СМЕНЫ ====================
 
-class ShiftsScreen extends StatelessWidget {
+class ShiftsScreen extends StatefulWidget {
   final ApiClient api;
   const ShiftsScreen({super.key, required this.api});
+
+  @override
+  State<ShiftsScreen> createState() => _ShiftsScreenState();
+}
+
+class _ShiftsScreenState extends State<ShiftsScreen> {
+  late Future<List<Map<String, dynamic>>> _future;
+  int _filter = 0; // 0 предстоящие, 1 прошедшие, 2 все
+
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.api.shifts();
+  }
+
+  DateTime? _parse(String? iso) {
+    if (iso == null || iso.isEmpty) return null;
+    return DateTime.tryParse(iso)?.toUtc();
+  }
+
+  String _countdown(DateTime start, DateTime end, DateTime now) {
+    if (now.isAfter(end)) return 'завершилась';
+    if (!now.isBefore(start)) return 'идёт сейчас';
+    final d = start.difference(now);
+    if (d.inHours >= 24) return 'через ${d.inDays} дн ${d.inHours % 24} ч';
+    if (d.inHours >= 1) return 'через ${d.inHours} ч ${d.inMinutes % 60} м';
+    return 'через ${d.inMinutes} м';
+  }
 
   @override
   Widget build(BuildContext context) {
     return _scaffold(
       'МОИ СМЕНЫ',
       FutureBuilder<List<Map<String, dynamic>>>(
-        future: api.shifts(),
+        future: _future,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) return _loading();
           if (snap.hasError) return _error(snap.error!);
-          final items = snap.data ?? [];
-          if (items.isEmpty) return _empty('Смен нет');
-          final today = DateTime.now().toIso8601String().substring(0, 10);
+          final all = snap.data ?? [];
+          if (all.isEmpty) return _empty('Смен нет');
+          final now = DateTime.now().toUtc();
+
+          DateTime? startOf(Map<String, dynamic> s) => _parse(s['start_ts'] as String?);
+          bool running(Map<String, dynamic> s) {
+            final st = startOf(s);
+            if (st == null) return false;
+            return st.add(const Duration(hours: 12)).isAfter(now);
+          }
+
+          final upcoming = all.where(running).toList()
+            ..sort((a, b) => (startOf(a) ?? now).compareTo(startOf(b) ?? now));
+          final past = all.where((s) => !running(s)).toList()
+            ..sort((a, b) => (startOf(b) ?? now).compareTo(startOf(a) ?? now));
+          final nearest = upcoming.isNotEmpty ? upcoming.first : null;
+
+          List<Map<String, dynamic>> shown = switch (_filter) {
+            0 => upcoming,
+            1 => past,
+            _ => [...upcoming, ...past],
+          };
+
           return ListView(
             padding: const EdgeInsets.all(14),
-            children: items.map((s) {
-              final night = s['shift'] == 'night';
-              final isToday = s['day'] == today;
-              return Container(
-                margin: const EdgeInsets.only(bottom: 8),
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(color: kPanel, border: Border.all(color: isToday ? kAccent : kLine)),
-                child: Row(children: [
-                  Icon(night ? Icons.nightlight_round : Icons.wb_sunny, color: night ? kAccent2 : kAccent),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: _titleStyle),
-                      const SizedBox(height: 4),
-                      Text('начало ${night ? '00:00' : '12:00'}${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: _subStyle),
-                    ]),
-                  ),
-                  if (isToday) const Text('СЕГОДНЯ', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 10, letterSpacing: 1)),
-                ]),
-              );
-            }).toList(),
+            children: [
+              if (nearest != null) _nearestCard(nearest, now),
+              const SizedBox(height: 12),
+              Row(children: [
+                _chip('ПРЕДСТОЯЩИЕ', 0),
+                const SizedBox(width: 6),
+                _chip('ПРОШЕДШИЕ', 1),
+                const SizedBox(width: 6),
+                _chip('ВСЕ', 2),
+              ]),
+              const SizedBox(height: 12),
+              if (shown.isEmpty) _empty('Пусто'),
+              ...shown.map((s) => _shiftCard(s, context)),
+            ],
           );
         },
       ),
+    );
+  }
+
+  Widget _chip(String label, int value) => Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _filter = value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 9),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: _filter == value ? kAccent : kPanel,
+              border: Border.all(color: _filter == value ? kAccent : kLine),
+            ),
+            child: Text(label,
+                style: TextStyle(
+                    color: _filter == value ? kBg : kSoft,
+                    fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+          ),
+        ),
+      );
+
+  Widget _nearestCard(Map<String, dynamic> s, DateTime now) {
+    final st = _parse(s['start_ts'] as String?);
+    final night = s['shift'] == 'night';
+    final countdown = st == null ? '' : _countdown(st, st.add(const Duration(hours: 12)), now);
+    return Container(
+      decoration: BoxDecoration(color: kPanel, border: Border.all(color: kAccent)),
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        const Text('БЛИЖАЙШАЯ СМЕНА', style: TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11, letterSpacing: 2)),
+        const SizedBox(height: 8),
+        Row(children: [
+          Icon(night ? Icons.nightlight_round : Icons.wb_sunny, color: night ? kAccent2 : kAccent, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('${s['day']} · ${night ? 'ночная' : 'дневная'}',
+                  style: _titleStyle.copyWith(fontSize: 16)),
+              const SizedBox(height: 4),
+              Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}',
+                  style: _subStyle),
+            ]),
+          ),
+          Text(countdown,
+              style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
+        ]),
+      ]),
+    );
+  }
+
+  Widget _shiftCard(Map<String, dynamic> s, BuildContext context) {
+    final night = s['shift'] == 'night';
+    final mates = (s['mates'] as List?)?.cast<String>() ?? [];
+    final locId = s['location_id'] as int?;
+    return InkWell(
+      onTap: locId == null
+          ? null
+          : () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => LocationDetailScreen(api: widget.api, id: locId))),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(night ? Icons.nightlight_round : Icons.wb_sunny, color: night ? kAccent2 : kAccent, size: 20),
+            const SizedBox(width: 10),
+            Expanded(child: Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: _titleStyle)),
+            _statusTag(s['status_label']?.toString() ?? '', s['status']?.toString() ?? ''),
+          ]),
+          const SizedBox(height: 6),
+          Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: _subStyle),
+          if (mates.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('в смене: ${mates.join(', ')}', style: _subStyle)),
+        ]),
+      ),
+    );
+  }
+
+  Widget _statusTag(String label, String status) {
+    final color = switch (status) {
+      'done' => kAccent2,
+      'absent' => kDanger,
+      'leave' => kSoft,
+      _ => kAccent,
+    };
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(border: Border.all(color: color)),
+      child: Text(label, style: TextStyle(color: color, fontFamily: 'monospace', fontSize: 10)),
     );
   }
 }
