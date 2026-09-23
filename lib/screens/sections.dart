@@ -1401,7 +1401,9 @@ class _RequestScreenState extends State<RequestScreen> {
   bool _sending = false;
   late Future<List<Map<String, dynamic>>> _f;
 
-  static const _kinds = {'access': 'Доступ', 'equipment': 'Снаряжение', 'transport': 'Транспорт', 'repair': 'Ремонт', 'other': 'Прочее'};
+  static const _kinds = {'bug': 'Баг', 'idea': 'Идея', 'access': 'Доступ', 'equipment': 'Снаряжение', 'transport': 'Транспорт', 'repair': 'Ремонт', 'other': 'Прочее'};
+
+  static String kindLabel(String k) => _kinds[k] ?? k;
 
   @override
   void initState() {
@@ -1490,7 +1492,7 @@ class _RequestScreenState extends State<RequestScreen> {
                 children: items.map((r) => _card(
                       leading: Icon(Icons.assignment, color: _st('${r['status']}'), size: 18),
                       title: '${r['title']}',
-                      sub: '${r['kind']} · ${r['status']}',
+                      sub: '${_RequestScreenState.kindLabel('${r['kind']}')} · ${r['status']}',
                     )).toList(),
               );
             },

@@ -4,6 +4,8 @@ import '../api.dart';
 import '../theme.dart';
 
 const _title = TextStyle(color: kText, fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.bold);
+const _kindLabels = {'bug': 'Баг', 'idea': 'Идея', 'access': 'Доступ', 'equipment': 'Снаряжение', 'transport': 'Транспорт', 'repair': 'Ремонт', 'other': 'Прочее'};
+String _kindLabel(String k) => _kindLabels[k] ?? k;
 const _sub = TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11);
 const _muted = TextStyle(color: kMute, fontFamily: 'monospace', fontSize: 11);
 
@@ -597,7 +599,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen> {
                         Expanded(child: Text('${r['title']}', style: _title)),
                         _tag('${r['status']}', _st('${r['status']}')),
                       ]),
-                      Text('${r['kind']} · ${r['author'] ?? ''} · ${_fmt(r['at'])}', style: _sub),
+                      Text('${_kindLabel('${r['kind']}')} · ${r['author'] ?? ''} · ${_fmt(r['at'])}', style: _sub),
                       if ('${r['body'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('${r['body']}', style: _muted)),
                       const SizedBox(height: 4),
                       Row(children: [
