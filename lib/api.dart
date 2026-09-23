@@ -1,0 +1,97 @@
+import 'dart:convert';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+
+class ApiException implements Exception {
+  final String code;
+  ApiException(this.code);
+
+  String get message {
+    switch (code) {
+      case 'bad_credentials':
+        return 'Неверный логин или пароль';
+      case 'blocked':
+        return 'Учётная запись заблокирована';
+      case 'bad_code':
+        return 'Неверный код 2FA';
+      case 'expired':
+        return 'Сессия истекла, войдите заново';
+      case 'unauthorized':
+        return 'Требуется вход';
+      default:
+        return 'Ошибка: $code';
+    }
+  }
+
+  @override
+  String toString() => message;
+}
+
+class ApiClient {
+  static const String base = 'https://chzog.iniproject.ru';
+  final _storage = const FlutterSecureStorage();
+  String? _token;
+
+  Future<String?> token() async => _token ??= await _storage.read(key: 'token');
+
+  Future<void> _setToken(String? value) async {
+    _token = value;
+    if (value == null) {
+      await _storage.delete(key: 'token');
+    } else {
+      await _storage.write(key: 'token', value: value);
+    }
+  }
+
+  Map<String, String> _headers() => {
+        'Content-Type': 'application/json',
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      };
+
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic> body) async {
+    final resp = await http
+        .post(Uri.parse('$base$path'), headers: _headers(), body: jsonEncode(body))
+        .timeout(const Duration(seconds: 20));
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw ApiException((data['error'] ?? 'error').toString());
+    }
+    return data;
+  }
+
+  Future<Map<String, dynamic>> login(String login, String password) async {
+    final data = await _post('/api/auth/login',
+        {'login': login, 'password': password, 'device': 'android'});
+    if (data['need_2fa'] == false) {
+      await _setToken(data['token'] as String);
+    }
+    return data;
+  }
+
+  Future<Map<String, dynamic>> login2fa(String pending, String code) async {
+    final data = await _post('/api/auth/2fa', {'token': pending, 'code': code});
+    await _setToken(data['token'] as String);
+    return data;
+  }
+
+  Future<Map<String, dynamic>> me() async {
+    await token();
+    final resp = await http
+        .get(Uri.parse('$base/api/me'), headers: _headers())
+        .timeout(const Duration(seconds: 20));
+    final data = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode != 200) {
+      throw ApiException((data['error'] ?? 'unauthorized').toString());
+    }
+    return data['user'] as Map<String, dynamic>;
+  }
+
+  Future<void> logout() async {
+    await token();
+    try {
+      await http.post(Uri.parse('$base/api/auth/logout'), headers: _headers());
+    } catch (_) {}
+    await _setToken(null);
+  }
+}
