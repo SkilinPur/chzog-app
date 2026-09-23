@@ -1,17 +1,51 @@
-# chzog_app
+# ЧЗОГ — мобильное приложение
 
-A new Flutter project.
+Приложение участника организации **ЧЗОГ** (Чернобыльская Зона Отчуждения, «Гостинка»).
+Работает через API сайта `chzog.iniproject.ru` — данные общие с сайтом и ботом.
 
-## Getting Started
+Стиль: тёмный оперативный (фон `#0B0E11`, акцент `#F0B429`, моно-шрифт).
 
-This project is a starting point for a Flutter application.
+## Стек
 
-A few resources to get you started if this is your first Flutter project:
+- **Flutter** (Dart) — одна кодовая база: Android сейчас, iOS позже.
+- **http** — запросы к API, **flutter_secure_storage** — хранение токена,
+  **webview_flutter** — встроенный браузер (карты, PDF).
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+## Экраны
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Вход** — логин/пароль + шаг 2FA; токен сохраняется.
+- **Главная** — профиль (должность, дело, допуск, пояс) и плитки разделов.
+- **Приказы** — список → карточка (шапка вида, текст, поля, подписи) → **подписать/отложить**, PDF.
+- **Объекты** — паспорт объекта → карта во встроенном браузере.
+- **Смены** — моё расписание.
+- **Проходы** — отметка вход/выход + история.
+- **Новости**, **Уведомления**, **Анкеты** (для кадровиков).
+
+Подробный сценарий — в [`UX.md`](UX.md).
+
+## Сборка и запуск
+
+```bash
+flutter pub get
+flutter run -d <device>            # запуск на устройстве/эмуляторе
+flutter build apk --debug          # debug-APK
+flutter build apk --release        # release-APK (для раздачи)
+```
+
+Требуется Android SDK; для эмулятора — KVM. При нехватке памяти сборки уменьшить
+`org.gradle.jvmargs` в `android/gradle.properties` (например, `-Xmx3G`).
+
+## API
+
+Бэкенд — репозиторий `SkilinPur/chzog-v2`. Используются эндпоинты под Bearer-токен:
+`/api/auth/login` (+2FA), `/api/auth/2fa`, `/api/me`, `/api/documents` (+подпись),
+`/api/locations`, `/api/shifts`, `/api/passes`, `/api/checkin`, `/api/news`,
+`/api/notifications`, `/api/applications`.
+
+## Этапы
+
+- ✅ Этап 1 — API авторизации (на сайте).
+- ✅ Этап 2 — вход и профиль.
+- ✅ Этап 3 — разделы (приказы/подписи, объекты/карта, смены, проходы, новости, уведомления, анкеты).
+- ⏳ Этап 4 — камера (фото инцидента, QR), GPS, push, офлайн.
+- ⏳ Этап 5 — релиз (APK → Google Play; iOS — на Mac/TestFlight).
