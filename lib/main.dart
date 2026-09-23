@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 import 'queue.dart';
@@ -49,11 +50,43 @@ class _RootGateState extends State<RootGate> {
       final summary = await _api.home();
       setState(() => _summary = summary);
       OfflineQueue.flush(_api);
+      _maybeBroadcast();
     } catch (_) {
       setState(() => _summary = null);
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  Future<void> _maybeBroadcast() async {
+    try {
+      final b = await _api.broadcast();
+      if (b == null || !mounted) return;
+      final sp = await SharedPreferences.getInstance();
+      final id = (b['id'] ?? 0) as int;
+      if (id <= (sp.getInt('broadcast_seen') ?? 0)) return;
+      if (!mounted) return;
+      final title = (b['title'] ?? '').toString();
+      await showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: kPanel,
+          title: Text(title.isEmpty ? 'Уведомление' : title,
+              style: const TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 16)),
+          content: SingleChildScrollView(
+            child: Text('${b['body']}', style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13)),
+          ),
+          actions: [
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('ПОНЯТНО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+      await sp.setInt('broadcast_seen', id);
+    } catch (_) {}
   }
 
   @override

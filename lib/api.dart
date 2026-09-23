@@ -167,6 +167,11 @@ class ApiClient {
 
   Future<Map<String, dynamic>> passState() async => (await _get('/api/passes/state')) as Map<String, dynamic>;
 
+  Future<Map<String, dynamic>?> broadcast() async {
+    final d = await _get('/api/broadcast');
+    return (d['broadcast'] as Map?)?.cast<String, dynamic>();
+  }
+
   Future<void> createRequest({required String kind, required String title, String body = ''}) =>
       _postJson('/api/request', {'kind': kind, 'title': title, 'body': body});
 
