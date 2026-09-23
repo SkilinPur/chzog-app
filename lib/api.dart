@@ -165,6 +165,8 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> passes() async =>
       ((await _get('/api/passes'))['items'] as List).cast<Map<String, dynamic>>();
 
+  Future<Map<String, dynamic>> passState() async => (await _get('/api/passes/state')) as Map<String, dynamic>;
+
   Future<String> checkin(String location, {double? lat, double? lng, double? accuracy}) async {
     final data = await _postJson('/api/checkin', {
       'location': location,

@@ -752,6 +752,8 @@ class _PassesScreenState extends State<PassesScreen> {
   int? _locId;
   String? _msg;
   bool _onSite = false;
+  String _stateLoc = '';
+  String _stateSince = '';
 
   @override
   void initState() {
@@ -776,15 +778,32 @@ class _PassesScreenState extends State<PassesScreen> {
   }
 
   Future<void> _loadStatus() async {
-    final items = await widget.api.passes();
-    if (mounted) setState(() => _onSite = items.isNotEmpty && items.first['direction'] == 'in');
+    try {
+      final st = await widget.api.passState();
+      if (mounted) {
+        setState(() {
+          _onSite = st['on_site'] == true;
+          _stateLoc = st['location']?.toString() ?? '';
+          _stateSince = st['since']?.toString() ?? '';
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _sinceLocal() {
+    final d = DateTime.tryParse(_stateSince);
+    if (d == null) return '';
+    final l = d.toLocal();
+    return '${l.hour.toString().padLeft(2, '0')}:${l.minute.toString().padLeft(2, '0')}';
   }
 
   Future<void> _checkin() async {
-    final loc = _locations.firstWhere((l) => l['id'] == _locId, orElse: () => {'name': 'КПП-1'});
+    final locName = (_onSite && _stateLoc.isNotEmpty)
+        ? _stateLoc
+        : _locations.firstWhere((l) => l['id'] == _locId, orElse: () => {'name': 'КПП-1'})['name'] as String;
     final pos = await currentPosition();
     try {
-      final dir = await widget.api.checkin(loc['name'] as String, lat: pos?.latitude, lng: pos?.longitude, accuracy: pos?.accuracy);
+      final dir = await widget.api.checkin(locName, lat: pos?.latitude, lng: pos?.longitude, accuracy: pos?.accuracy);
       if (!mounted) return;
       setState(() => _msg = (dir == 'out' ? 'Отмечен выход' : 'Отмечен вход') + (pos != null ? ' · GPS' : ''));
       setState(() => _passes = widget.api.passes());
@@ -792,7 +811,7 @@ class _PassesScreenState extends State<PassesScreen> {
     } catch (e) {
       if (isOffline(e)) {
         await OfflineQueue.add(PendingAction('checkin_loc', {
-          'location': loc['name'],
+          'location': locName,
           'lat': pos?.latitude, 'lng': pos?.longitude, 'accuracy': pos?.accuracy,
         }));
         if (!mounted) return;
@@ -849,6 +868,12 @@ class _PassesScreenState extends State<PassesScreen> {
               Text(_onSite ? 'НА ОБЪЕКТЕ' : 'НЕ НА ОБЪЕКТЕ',
                   style: TextStyle(color: _onSite ? kAccent2 : kSoft, fontFamily: 'monospace', fontWeight: FontWeight.bold, letterSpacing: 1)),
             ]),
+            if (_onSite && _stateLoc.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 6),
+                child: Text('$_stateLoc${_sinceLocal().isEmpty ? '' : ' · с ${_sinceLocal()}'}',
+                    style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13)),
+              ),
             const SizedBox(height: 12),
             Row(children: [
               Expanded(
