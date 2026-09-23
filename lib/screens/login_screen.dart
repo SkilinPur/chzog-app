@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../api.dart';
 import '../theme.dart';
+import '../updater.dart';
 
 class LoginScreen extends StatefulWidget {
   final ApiClient api;
@@ -14,6 +15,13 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  String _ver = '';
+
+  @override
+  void initState() {
+    super.initState();
+    appVersion().then((v) { if (mounted) setState(() => _ver = v); });
+  }
   final _login = TextEditingController();
   final _password = TextEditingController();
   final _code = TextEditingController();
@@ -74,6 +82,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Text('// ВХОД В КОНТУР',
                     textAlign: TextAlign.center,
                     style: TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 12, letterSpacing: 2)),
+                if (_ver.isNotEmpty)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text('версия $_ver',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(color: kMute, fontFamily: 'monospace', fontSize: 11)),
+                  ),
                 const SizedBox(height: 32),
                 if (!twoFa) ...[
                   TextField(

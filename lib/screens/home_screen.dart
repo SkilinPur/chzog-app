@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../queue.dart';
 import '../theme.dart';
+import '../updater.dart';
 import 'manage.dart';
 import 'sections.dart';
 
@@ -20,12 +21,14 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   late Map<String, dynamic> s;
   int _pending = 0;
+  String _ver = '';
 
   @override
   void initState() {
     super.initState();
     s = widget.summary;
     _loadPending();
+    appVersion().then((v) { if (mounted) setState(() => _ver = v); });
   }
 
   Future<void> _loadPending() async {
@@ -90,8 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ЧЗОГ · КАБИНЕТ',
-            style: TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2)),
+        title: Text('ЧЗОГ · КАБИНЕТ${_ver.isEmpty ? '' : ' · v$_ver'}',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2)),
         actions: [
           IconButton(tooltip: 'Обновить', onPressed: _refresh, icon: const Icon(Icons.refresh, color: kSoft)),
           IconButton(tooltip: 'Выйти', onPressed: widget.onLogout, icon: const Icon(Icons.logout, color: kSoft)),

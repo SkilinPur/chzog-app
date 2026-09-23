@@ -107,3 +107,12 @@ class Updater {
     }
   }
 }
+
+Future<String> appVersion() async {
+  try {
+    final info = await PackageInfo.fromPlatform();
+    return info.version;
+  } catch (_) {
+    return '';
+  }
+}
