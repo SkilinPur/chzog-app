@@ -1382,3 +1382,121 @@ class _ReportScreenState extends State<ReportScreen> {
     );
   }
 }
+
+// ==================== ВНУТРЕННЯЯ ЗАЯВКА ====================
+
+class RequestScreen extends StatefulWidget {
+  final ApiClient api;
+  const RequestScreen({super.key, required this.api});
+
+  @override
+  State<RequestScreen> createState() => _RequestScreenState();
+}
+
+class _RequestScreenState extends State<RequestScreen> {
+  final _title = TextEditingController();
+  final _body = TextEditingController();
+  String _kind = 'access';
+  String? _msg;
+  bool _sending = false;
+  late Future<List<Map<String, dynamic>>> _f;
+
+  static const _kinds = {'access': 'Доступ', 'equipment': 'Снаряжение', 'transport': 'Транспорт', 'repair': 'Ремонт', 'other': 'Прочее'};
+
+  @override
+  void initState() {
+    super.initState();
+    _f = widget.api.myRequests();
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _body.dispose();
+    super.dispose();
+  }
+
+  Color _st(String s) => switch (s) {
+        'approved' => kAccent2,
+        'rejected' => kDanger,
+        'done' => kSoft,
+        _ => kAccent,
+      };
+
+  Future<void> _send() async {
+    if (_title.text.trim().length < 3) {
+      setState(() => _msg = 'Укажите тему (мин. 3 символа)');
+      return;
+    }
+    setState(() { _sending = true; _msg = null; });
+    try {
+      await widget.api.createRequest(kind: _kind, title: _title.text.trim(), body: _body.text.trim());
+      if (!mounted) return;
+      setState(() {
+        _msg = 'Заявка отправлена';
+        _title.clear();
+        _body.clear();
+        _f = widget.api.myRequests();
+      });
+    } catch (e) {
+      if (mounted) setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _scaffold(
+      'ЗАЯВКА',
+      ListView(
+        padding: const EdgeInsets.all(14),
+        children: [
+          const Text('ТИП', style: _subStyle),
+          const SizedBox(height: 6),
+          Wrap(spacing: 6, children: _kinds.entries.map((e) {
+            final sel = e.key == _kind;
+            return GestureDetector(
+              onTap: () => setState(() => _kind = e.key),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(color: sel ? kAccent : kPanel, border: Border.all(color: sel ? kAccent : kLine)),
+                child: Text(e.value, style: TextStyle(color: sel ? kBg : kSoft, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
+              ),
+            );
+          }).toList()),
+          const SizedBox(height: 14),
+          TextField(controller: _title, style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 14), decoration: const InputDecoration(labelText: 'Тема')),
+          const SizedBox(height: 12),
+          TextField(controller: _body, maxLines: 4, style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13), decoration: const InputDecoration(labelText: 'Описание')),
+          const SizedBox(height: 16),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder(), padding: const EdgeInsets.symmetric(vertical: 16)),
+            onPressed: _sending ? null : _send,
+            child: Text(_sending ? 'ОТПРАВКА…' : 'ОТПРАВИТЬ', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+          ),
+          if (_msg != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_msg!, style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
+          const SizedBox(height: 18),
+          const Text('МОИ ЗАЯВКИ', style: TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11, letterSpacing: 2)),
+          const SizedBox(height: 8),
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: _f,
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) return _loading();
+              if (snap.hasError) return _error(snap.error!);
+              final items = snap.data ?? [];
+              if (items.isEmpty) return _empty('Заявок нет');
+              return Column(
+                children: items.map((r) => _card(
+                      leading: Icon(Icons.assignment, color: _st('${r['status']}'), size: 18),
+                      title: '${r['title']}',
+                      sub: '${r['kind']} · ${r['status']}',
+                    )).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}

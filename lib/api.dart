@@ -167,6 +167,18 @@ class ApiClient {
 
   Future<Map<String, dynamic>> passState() async => (await _get('/api/passes/state')) as Map<String, dynamic>;
 
+  Future<void> createRequest({required String kind, required String title, String body = ''}) =>
+      _postJson('/api/request', {'kind': kind, 'title': title, 'body': body});
+
+  Future<List<Map<String, dynamic>>> myRequests() async =>
+      ((await _get('/api/requests'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<List<Map<String, dynamic>>> mRequests({String status = ''}) async =>
+      ((await _get('/api/manage/requests?status=$status'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<void> mRequestDecide(int id, String status, {String note = ''}) =>
+      _postJson('/api/manage/requests/decide', {'id': id, 'status': status, 'note': note});
+
   Future<String> checkin(String location, {double? lat, double? lng, double? accuracy}) async {
     final data = await _postJson('/api/checkin', {
       'location': location,

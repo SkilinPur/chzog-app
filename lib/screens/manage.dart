@@ -537,3 +537,103 @@ class _ManageLocationsScreenState extends State<ManageLocationsScreen> {
     );
   }
 }
+
+// ==================== ЗАЯВКИ (руководителю) ====================
+
+class ManageRequestsScreen extends StatefulWidget {
+  final ApiClient api;
+  const ManageRequestsScreen({super.key, required this.api});
+
+  @override
+  State<ManageRequestsScreen> createState() => _ManageRequestsScreenState();
+}
+
+class _ManageRequestsScreenState extends State<ManageRequestsScreen> {
+  String _status = '';
+  late Future<List<Map<String, dynamic>>> _f;
+
+  @override
+  void initState() {
+    super.initState();
+    _f = widget.api.mRequests();
+  }
+
+  void _reload() => setState(() => _f = widget.api.mRequests(status: _status));
+
+  Color _st(String s) => switch (s) {
+        'approved' => kAccent2,
+        'rejected' => kDanger,
+        'done' => kSoft,
+        _ => kAccent,
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return _scaffold(
+      'ЗАЯВКИ',
+      Column(children: [
+        Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(children: [
+            _fbtn('ВСЕ', ''),
+            const SizedBox(width: 6),
+            _fbtn('НОВЫЕ', 'new'),
+            const SizedBox(width: 6),
+            _fbtn('РЕШЁННЫЕ', 'approved'),
+          ]),
+        ),
+        Expanded(
+          child: FutureBuilder<List<Map<String, dynamic>>>(
+            future: _f,
+            builder: (context, snap) {
+              if (snap.connectionState != ConnectionState.done) return _loading();
+              if (snap.hasError) return _err(snap.error!);
+              final items = snap.data ?? [];
+              if (items.isEmpty) return _empty('Заявок нет');
+              return ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                children: items.map((r) => _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(children: [
+                        Expanded(child: Text('${r['title']}', style: _title)),
+                        _tag('${r['status']}', _st('${r['status']}')),
+                      ]),
+                      Text('${r['kind']} · ${r['author'] ?? ''} · ${_fmt(r['at'])}', style: _sub),
+                      if ('${r['body'] ?? ''}'.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('${r['body']}', style: _muted)),
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        TextButton(
+                          onPressed: () async {
+                            await widget.api.mRequestDecide(r['id'] as int, 'approved');
+                            _reload();
+                          },
+                          child: const Text('Одобрить', style: TextStyle(color: kAccent2, fontFamily: 'monospace')),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            await widget.api.mRequestDecide(r['id'] as int, 'rejected');
+                            _reload();
+                          },
+                          child: const Text('Отклонить', style: TextStyle(color: kDanger, fontFamily: 'monospace')),
+                        ),
+                      ]),
+                    ]))).toList(),
+              );
+            },
+          ),
+        ),
+      ]),
+    );
+  }
+
+  Widget _fbtn(String label, String value) => Expanded(
+        child: GestureDetector(
+          onTap: () { setState(() => _status = value); _reload(); },
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            alignment: Alignment.center,
+            decoration: BoxDecoration(color: _status == value ? kAccent : kPanel, border: Border.all(color: _status == value ? kAccent : kLine)),
+            child: Text(label, style: TextStyle(color: _status == value ? kBg : kSoft, fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold)),
+          ),
+        ),
+      );
+}

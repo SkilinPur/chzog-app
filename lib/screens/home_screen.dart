@@ -71,6 +71,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _Tile('СМЕНЫ', 'моё расписание', null, () => _open(ShiftsScreen(api: widget.api))),
       _Tile('ПРОХОДЫ', 'вход / выход', null, () => _open(PassesScreen(api: widget.api))),
       _Tile('ИНЦИДЕНТ', 'рапорт · фото · GPS', null, () => _open(ReportScreen(api: widget.api))),
+      _Tile('ЗАЯВКА', 'внутренняя', null, () => _open(RequestScreen(api: widget.api))),
       _Tile('НОВОСТИ', 'лента и объявления', null, () => _open(NewsScreen(api: widget.api))),
       _Tile('УВЕДОМЛЕНИЯ', 'что нового', unread > 0 ? '$unread' : null, () => _open(NotificationsScreen(api: widget.api))),
       if (perms.contains('manage_members'))
@@ -81,6 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _Tile('ЖУРНАЛ ПРОХОДОВ', 'кто где', null, () => _open(ManagePassesScreen(api: widget.api))),
       if (perms.contains('manage_security'))
         _Tile('ИНЦИДЕНТЫ', 'ССБ', null, () => _open(ManageIncidentsScreen(api: widget.api))),
+      if (perms.contains('manage_services'))
+        _Tile('ЗАЯВКИ', 'внутренние', null, () => _open(ManageRequestsScreen(api: widget.api))),
       if (perms.contains('manage_members'))
         _Tile('ЛИЧНЫЕ ДЕЛА', 'участники', null, () => _open(ManageMembersScreen(api: widget.api))),
     ];
