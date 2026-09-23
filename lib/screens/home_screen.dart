@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../queue.dart';
 import '../theme.dart';
 import 'sections.dart';
 
@@ -17,18 +18,36 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   late Map<String, dynamic> s;
+  int _pending = 0;
 
   @override
   void initState() {
     super.initState();
     s = widget.summary;
+    _loadPending();
+  }
+
+  Future<void> _loadPending() async {
+    final n = await OfflineQueue.count();
+    if (mounted) setState(() => _pending = n);
+  }
+
+  Future<void> _sync() async {
+    final sent = await OfflineQueue.flush(widget.api);
+    await _loadPending();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(sent > 0 ? 'Отправлено: $sent' : 'Нет сети', style: const TextStyle(fontFamily: 'monospace'))));
+    }
   }
 
   Future<void> _refresh() async {
     try {
       final d = await widget.api.home();
       if (mounted) setState(() => s = d);
+      await OfflineQueue.flush(widget.api);
     } catch (_) {}
+    await _loadPending();
   }
 
   void _open(Widget screen) async {
@@ -116,6 +135,22 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13)),
                     ]),
                   ),
+                ]),
+              ),
+            ],
+            if (_pending > 0) ...[
+              const SizedBox(height: 12),
+              Container(
+                decoration: BoxDecoration(color: kPanel, border: Border.all(color: kAccent2)),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(children: [
+                  const Icon(Icons.cloud_off, color: kAccent2, size: 20),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text('$_pending действий ждут сети',
+                        style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12)),
+                  ),
+                  TextButton(onPressed: _sync, child: const Text('ОТПРАВИТЬ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
                 ]),
               ),
             ],

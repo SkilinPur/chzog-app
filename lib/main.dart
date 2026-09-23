@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'api.dart';
+import 'queue.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'theme.dart';
@@ -47,6 +48,7 @@ class _RootGateState extends State<RootGate> {
     try {
       final summary = await _api.home();
       setState(() => _summary = summary);
+      OfflineQueue.flush(_api);
     } catch (_) {
       setState(() => _summary = null);
     } finally {

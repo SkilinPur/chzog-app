@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../api.dart';
+import '../queue.dart';
 import '../scan.dart';
 import '../theme.dart';
 import 'webview_screen.dart';
@@ -390,8 +391,23 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
   }
 
   Future<void> _mark(Map<String, dynamic> s, String status) async {
-    await widget.api.shiftStatus(s['id'] as int, status);
-    _reload();
+    try {
+      await widget.api.shiftStatus(s['id'] as int, status);
+      _reload();
+    } catch (e) {
+      if (isOffline(e)) {
+        await OfflineQueue.add(PendingAction('shift_status', {'id': s['id'], 'status': status}));
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text('Нет сети — отметка сохранена, отправим позже', style: TextStyle(fontFamily: 'monospace'))));
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              content: Text(e is ApiException ? e.message : 'Ошибка', style: const TextStyle(fontFamily: 'monospace'))));
+        }
+      }
+    }
   }
 
   Future<void> _swap(Map<String, dynamic> s) async {
@@ -632,11 +648,20 @@ class _PassesScreenState extends State<PassesScreen> {
     super.initState();
     _passes = widget.api.passes();
     widget.api.locations().then((l) {
+      OfflineQueue.cacheLocations(l);
       if (mounted) setState(() {
         _locations = l;
         _locId = l.isNotEmpty ? l.first['id'] as int : null;
       });
-    }).catchError((_) {});
+    }).catchError((_) async {
+      final cached = await OfflineQueue.cachedLocations();
+      if (mounted && cached.isNotEmpty) {
+        setState(() {
+          _locations = cached;
+          _locId = cached.first['id'] as int;
+        });
+      }
+    });
     _loadStatus();
   }
 
@@ -647,15 +672,24 @@ class _PassesScreenState extends State<PassesScreen> {
 
   Future<void> _checkin() async {
     final loc = _locations.firstWhere((l) => l['id'] == _locId, orElse: () => {'name': 'КПП-1'});
+    final pos = await currentPosition();
     try {
-      final pos = await currentPosition();
       final dir = await widget.api.checkin(loc['name'] as String, lat: pos?.latitude, lng: pos?.longitude, accuracy: pos?.accuracy);
       if (!mounted) return;
       setState(() => _msg = (dir == 'out' ? 'Отмечен выход' : 'Отмечен вход') + (pos != null ? ' · GPS' : ''));
       setState(() => _passes = widget.api.passes());
       await _loadStatus();
     } catch (e) {
-      setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+      if (isOffline(e)) {
+        await OfflineQueue.add(PendingAction('checkin_loc', {
+          'location': loc['name'],
+          'lat': pos?.latitude, 'lng': pos?.longitude, 'accuracy': pos?.accuracy,
+        }));
+        if (!mounted) return;
+        setState(() => _msg = 'Нет сети — сохранено, отправим позже');
+      } else {
+        setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+      }
     }
   }
 
@@ -676,7 +710,16 @@ class _PassesScreenState extends State<PassesScreen> {
       setState(() => _passes = widget.api.passes());
       await _loadStatus();
     } catch (e) {
-      setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+      if (isOffline(e)) {
+        await OfflineQueue.add(PendingAction('checkin', {
+          'qr': token,
+          'lat': pos?.latitude, 'lng': pos?.longitude, 'accuracy': pos?.accuracy,
+        }));
+        if (!mounted) return;
+        setState(() => _msg = 'Нет сети — сохранено, отправим позже');
+      } else {
+        setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+      }
     }
   }
 
@@ -1053,8 +1096,12 @@ class _ReportScreenState extends State<ReportScreen> {
   void initState() {
     super.initState();
     widget.api.locations().then((l) {
+      OfflineQueue.cacheLocations(l);
       if (mounted) setState(() => _locations = l);
-    }).catchError((_) {});
+    }).catchError((_) async {
+      final cached = await OfflineQueue.cachedLocations();
+      if (mounted && cached.isNotEmpty) setState(() => _locations = cached);
+    });
   }
 
   @override
@@ -1099,7 +1146,28 @@ class _ReportScreenState extends State<ReportScreen> {
         _photoPath = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+      if (isOffline(e)) {
+        final saved = _photoPath == null ? null : await OfflineQueue.persistPhoto(_photoPath!);
+        await OfflineQueue.add(PendingAction('incident', {
+          'title': _title.text.trim(),
+          'details': _details.text.trim(),
+          'kind': _kind,
+          'severity': _severity,
+          'location_id': _locId,
+          'lat': pos?.latitude,
+          'lng': pos?.longitude,
+          'photo': saved,
+        }));
+        if (!mounted) return;
+        setState(() {
+          _msg = 'Нет сети — сохранено, отправим позже';
+          _title.clear();
+          _details.clear();
+          _photoPath = null;
+        });
+      } else if (mounted) {
+        setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+      }
     } finally {
       if (mounted) setState(() => _sending = false);
     }
