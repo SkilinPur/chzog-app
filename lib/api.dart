@@ -139,6 +139,10 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> shifts() async =>
       ((await _get('/api/shifts'))['items'] as List).cast<Map<String, dynamic>>();
 
+  Future<void> shiftStatus(int id, String status) => _postJson('/api/shifts/$id/status', {'status': status});
+
+  Future<void> shiftSwap(int id) => _postJson('/api/shifts/$id/swap', {});
+
   Future<List<Map<String, dynamic>>> passes() async =>
       ((await _get('/api/passes'))['items'] as List).cast<Map<String, dynamic>>();
 

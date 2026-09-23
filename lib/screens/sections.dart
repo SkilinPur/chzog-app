@@ -365,7 +365,8 @@ class ShiftsScreen extends StatefulWidget {
 
 class _ShiftsScreenState extends State<ShiftsScreen> {
   late Future<List<Map<String, dynamic>>> _future;
-  int _filter = 0; // 0 предстоящие, 1 прошедшие, 2 все
+  int _filter = 0;
+  bool _calendar = false;
 
   @override
   void initState() {
@@ -373,10 +374,9 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     _future = widget.api.shifts();
   }
 
-  DateTime? _parse(String? iso) {
-    if (iso == null || iso.isEmpty) return null;
-    return DateTime.tryParse(iso)?.toUtc();
-  }
+  void _reload() => setState(() => _future = widget.api.shifts());
+
+  DateTime? _parse(String? iso) => (iso == null || iso.isEmpty) ? null : DateTime.tryParse(iso)?.toUtc();
 
   String _countdown(DateTime start, DateTime end, DateTime now) {
     if (now.isAfter(end)) return 'завершилась';
@@ -387,11 +387,33 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     return 'через ${d.inMinutes} м';
   }
 
+  Future<void> _mark(Map<String, dynamic> s, String status) async {
+    await widget.api.shiftStatus(s['id'] as int, status);
+    _reload();
+  }
+
+  Future<void> _swap(Map<String, dynamic> s) async {
+    await widget.api.shiftSwap(s['id'] as int);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Запрос замены отправлен', style: TextStyle(fontFamily: 'monospace'))));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return _scaffold(
-      'МОИ СМЕНЫ',
-      FutureBuilder<List<Map<String, dynamic>>>(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('МОИ СМЕНЫ', style: TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2)),
+        actions: [
+          IconButton(
+            tooltip: _calendar ? 'Списком' : 'Календарь',
+            onPressed: () => setState(() => _calendar = !_calendar),
+            icon: Icon(_calendar ? Icons.view_list : Icons.calendar_month, color: kSoft),
+          ),
+        ],
+      ),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
         future: _future,
         builder: (context, snap) {
           if (snap.connectionState != ConnectionState.done) return _loading();
@@ -399,41 +421,26 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           final all = snap.data ?? [];
           if (all.isEmpty) return _empty('Смен нет');
           final now = DateTime.now().toUtc();
-
-          DateTime? startOf(Map<String, dynamic> s) => _parse(s['start_ts'] as String?);
           bool running(Map<String, dynamic> s) {
-            final st = startOf(s);
-            if (st == null) return false;
-            return st.add(const Duration(hours: 12)).isAfter(now);
+            final st = _parse(s['start_ts'] as String?);
+            return st != null && st.add(const Duration(hours: 12)).isAfter(now);
           }
-
+          if (_calendar) return _monthGrid(all, now);
           final upcoming = all.where(running).toList()
-            ..sort((a, b) => (startOf(a) ?? now).compareTo(startOf(b) ?? now));
+            ..sort((a, b) => (_parse(a['start_ts'] as String?) ?? now).compareTo(_parse(b['start_ts'] as String?) ?? now));
           final past = all.where((s) => !running(s)).toList()
-            ..sort((a, b) => (startOf(b) ?? now).compareTo(startOf(a) ?? now));
+            ..sort((a, b) => (_parse(b['start_ts'] as String?) ?? now).compareTo(_parse(a['start_ts'] as String?) ?? now));
           final nearest = upcoming.isNotEmpty ? upcoming.first : null;
-
-          List<Map<String, dynamic>> shown = switch (_filter) {
-            0 => upcoming,
-            1 => past,
-            _ => [...upcoming, ...past],
-          };
-
+          final shown = switch (_filter) { 0 => upcoming, 1 => past, _ => [...upcoming, ...past] };
           return ListView(
             padding: const EdgeInsets.all(14),
             children: [
               if (nearest != null) _nearestCard(nearest, now),
               const SizedBox(height: 12),
-              Row(children: [
-                _chip('ПРЕДСТОЯЩИЕ', 0),
-                const SizedBox(width: 6),
-                _chip('ПРОШЕДШИЕ', 1),
-                const SizedBox(width: 6),
-                _chip('ВСЕ', 2),
-              ]),
+              Row(children: [_chip('ПРЕДСТОЯЩИЕ', 0), const SizedBox(width: 6), _chip('ПРОШЕДШИЕ', 1), const SizedBox(width: 6), _chip('ВСЕ', 2)]),
               const SizedBox(height: 12),
               if (shown.isEmpty) _empty('Пусто'),
-              ...shown.map((s) => _shiftCard(s, context)),
+              ...shown.map((s) => _shiftCard(s, now)),
             ],
           );
         },
@@ -447,14 +454,8 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 9),
             alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: _filter == value ? kAccent : kPanel,
-              border: Border.all(color: _filter == value ? kAccent : kLine),
-            ),
-            child: Text(label,
-                style: TextStyle(
-                    color: _filter == value ? kBg : kSoft,
-                    fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+            decoration: BoxDecoration(color: _filter == value ? kAccent : kPanel, border: Border.all(color: _filter == value ? kAccent : kLine)),
+            child: Text(label, style: TextStyle(color: _filter == value ? kBg : kSoft, fontFamily: 'monospace', fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
           ),
         ),
       );
@@ -472,61 +473,137 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
         Row(children: [
           Icon(night ? Icons.nightlight_round : Icons.wb_sunny, color: night ? kAccent2 : kAccent, size: 28),
           const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${s['day']} · ${night ? 'ночная' : 'дневная'}',
-                  style: _titleStyle.copyWith(fontSize: 16)),
-              const SizedBox(height: 4),
-              Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}',
-                  style: _subStyle),
-            ]),
-          ),
-          Text(countdown,
-              style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
+          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: _titleStyle.copyWith(fontSize: 16)),
+            const SizedBox(height: 4),
+            Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: _subStyle),
+          ])),
+          Text(countdown, style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
         ]),
       ]),
     );
   }
 
-  Widget _shiftCard(Map<String, dynamic> s, BuildContext context) {
+  Widget _shiftCard(Map<String, dynamic> s, DateTime now) {
     final night = s['shift'] == 'night';
     final mates = (s['mates'] as List?)?.cast<String>() ?? [];
     final locId = s['location_id'] as int?;
-    return InkWell(
-      onTap: locId == null
-          ? null
-          : () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => LocationDetailScreen(api: widget.api, id: locId))),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
+    final st = _parse(s['start_ts'] as String?);
+    final planned = s['status'] == 'planned';
+    final started = st != null && !now.isBefore(st);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        InkWell(
+          onTap: locId == null ? null : () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => LocationDetailScreen(api: widget.api, id: locId))),
+          child: Row(children: [
             Icon(night ? Icons.nightlight_round : Icons.wb_sunny, color: night ? kAccent2 : kAccent, size: 20),
             const SizedBox(width: 10),
             Expanded(child: Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: _titleStyle)),
             _statusTag(s['status_label']?.toString() ?? '', s['status']?.toString() ?? ''),
           ]),
-          const SizedBox(height: 6),
-          Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: _subStyle),
-          if (mates.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('в смене: ${mates.join(', ')}', style: _subStyle)),
-        ]),
-      ),
+        ),
+        const SizedBox(height: 6),
+        Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: _subStyle),
+        if (mates.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('в смене: ${mates.join(', ')}', style: _subStyle)),
+        if (planned && started)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(children: [
+              TextButton(onPressed: () => _mark(s, 'done'), child: const Text('✓ Отработана', style: TextStyle(color: kAccent2, fontFamily: 'monospace'))),
+              TextButton(onPressed: () => _mark(s, 'absent'), child: const Text('Неявка', style: TextStyle(color: kDanger, fontFamily: 'monospace'))),
+              const Spacer(),
+              TextButton(onPressed: () => _swap(s), child: const Text('Замена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+            ]),
+          )
+        else if (planned)
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => _swap(s), child: const Text('Запросить замену', style: TextStyle(color: kSoft, fontFamily: 'monospace')))),
+          ),
+      ]),
     );
   }
 
   Widget _statusTag(String label, String status) {
-    final color = switch (status) {
-      'done' => kAccent2,
-      'absent' => kDanger,
-      'leave' => kSoft,
-      _ => kAccent,
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(border: Border.all(color: color)),
-      child: Text(label, style: TextStyle(color: color, fontFamily: 'monospace', fontSize: 10)),
+    final color = switch (status) { 'done' => kAccent2, 'absent' => kDanger, 'leave' => kSoft, _ => kAccent };
+    return Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(border: Border.all(color: color)),
+        child: Text(label, style: TextStyle(color: color, fontFamily: 'monospace', fontSize: 10)));
+  }
+
+  Widget _monthGrid(List<Map<String, dynamic>> all, DateTime now) {
+    final nowLocal = now.toLocal();
+    final first = DateTime(nowLocal.year, nowLocal.month, 1);
+    final daysInMonth = DateTime(nowLocal.year, nowLocal.month + 1, 0).day;
+    final lead = (first.weekday - 1); // Пн=0
+    final byDay = <String, Map<String, dynamic>>{};
+    for (final s in all) {
+      byDay[s['day'] as String] = s;
+    }
+    String dstr(int d) => '${nowLocal.year}-${nowLocal.month.toString().padLeft(2, '0')}-${d.toString().padLeft(2, '0')}';
+    final cells = <Widget>[];
+    for (var i = 0; i < lead; i++) {
+      cells.add(const SizedBox());
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      final s = byDay[dstr(d)];
+      final night = s?['shift'] == 'night';
+      final isToday = d == nowLocal.day;
+      cells.add(GestureDetector(
+        onTap: s == null ? null : () => _shiftDialog(s, now),
+        child: Container(
+          margin: const EdgeInsets.all(2),
+          decoration: BoxDecoration(
+            color: s == null ? kPanel : (night ? kAccent2.withValues(alpha: 0.18) : kAccent.withValues(alpha: 0.18)),
+            border: Border.all(color: isToday ? kText : kLine),
+          ),
+          child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Text('$d', style: TextStyle(color: s == null ? kMute : kText, fontFamily: 'monospace', fontSize: 13)),
+            if (s != null)
+              Text(night ? 'ночь' : 'день', style: TextStyle(color: night ? kAccent2 : kAccent, fontFamily: 'monospace', fontSize: 8)),
+          ]),
+        ),
+      ));
+    }
+    return ListView(
+      padding: const EdgeInsets.all(12),
+      children: [
+        Text('${_monthName(nowLocal.month)} ${nowLocal.year}',
+            style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 15, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 10),
+        Row(children: ['ПН', 'ВТ', 'СР', 'ЧТ', 'ПТ', 'СБ', 'ВС'].map((d) => Expanded(child: Center(child: Text(d, style: _subStyle)))).toList()),
+        const SizedBox(height: 6),
+        GridView.count(
+          crossAxisCount: 7,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          childAspectRatio: 0.95,
+          children: cells,
+        ),
+      ],
+    );
+  }
+
+  String _monthName(int m) => ['', 'Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'][m];
+
+  void _shiftDialog(Map<String, dynamic> s, DateTime now) {
+    final night = s['shift'] == 'night';
+    final st = _parse(s['start_ts'] as String?);
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kPanel,
+        title: Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: const TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+        content: Text('Начало: ${s['start']}\nДлительность: ${s['duration']} ч\nПост: ${(s['post'] ?? '') == '' ? '—' : s['post']}\nСтатус: ${s['status_label']}${st != null ? '\n${_countdown(st, st.add(const Duration(hours: 12)), now)}' : ''}',
+            style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+          if (s['status'] == 'planned')
+            TextButton(onPressed: () { Navigator.pop(context); _swap(s); }, child: const Text('Замена', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+        ],
+      ),
     );
   }
 }
