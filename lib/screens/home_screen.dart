@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../queue.dart';
 import '../theme.dart';
+import 'manage.dart';
 import 'sections.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -74,6 +75,14 @@ class _HomeScreenState extends State<HomeScreen> {
       _Tile('УВЕДОМЛЕНИЯ', 'что нового', unread > 0 ? '$unread' : null, () => _open(NotificationsScreen(api: widget.api))),
       if (perms.contains('manage_members'))
         _Tile('АНКЕТЫ', 'заявки на службу', null, () => _open(ApplicationsScreen(api: widget.api))),
+      if (perms.contains('manage_security'))
+        _Tile('ВСЕ СМЕНЫ', 'табель', null, () => _open(ManageShiftsScreen(api: widget.api))),
+      if (perms.contains('manage_security'))
+        _Tile('ЖУРНАЛ ПРОХОДОВ', 'кто где', null, () => _open(ManagePassesScreen(api: widget.api))),
+      if (perms.contains('manage_security'))
+        _Tile('ИНЦИДЕНТЫ', 'ССБ', null, () => _open(ManageIncidentsScreen(api: widget.api))),
+      if (perms.contains('manage_members'))
+        _Tile('ЛИЧНЫЕ ДЕЛА', 'участники', null, () => _open(ManageMembersScreen(api: widget.api))),
     ];
 
     return Scaffold(

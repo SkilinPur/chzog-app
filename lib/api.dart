@@ -141,7 +141,26 @@ class ApiClient {
 
   Future<void> shiftStatus(int id, String status) => _postJson('/api/shifts/$id/status', {'status': status});
 
-  Future<void> shiftSwap(int id) => _postJson('/api/shifts/$id/swap', {});
+  Future<void> shiftSwap(int id, {int? toMemberId}) =>
+      _postJson('/api/shifts/$id/swap', {if (toMemberId != null) 'to_member_id': toMemberId});
+
+  Future<void> shiftStart(int id) => _postJson('/api/shifts/$id/start', {});
+
+  Future<List<Map<String, dynamic>>> colleagues() async =>
+      ((await _get('/api/colleagues'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<void> shiftFinish(int id, {String report = '', String? photoPath}) async {
+    await token();
+    final req = http.MultipartRequest('POST', Uri.parse('$base/api/shifts/$id/finish'));
+    if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
+    req.fields['report'] = report;
+    if (photoPath != null) req.files.add(await http.MultipartFile.fromPath('photo', photoPath));
+    final resp = await http.Response.fromStream(await req.send().timeout(const Duration(seconds: 60)));
+    if (resp.statusCode >= 400) {
+      final d = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;
+      throw ApiException((d['error'] ?? 'error').toString());
+    }
+  }
 
   Future<List<Map<String, dynamic>>> passes() async =>
       ((await _get('/api/passes'))['items'] as List).cast<Map<String, dynamic>>();
@@ -212,4 +231,35 @@ class ApiClient {
 
   Future<void> decideApplication(int id, String status) =>
       _postJson('/api/applications/$id/decide', {'status': status});
+
+  // ---------- Руководителю (/api/manage/*) ----------
+
+  Future<List<Map<String, dynamic>>> mShifts({String day = ''}) async =>
+      ((await _get('/api/manage/shifts?day=${Uri.encodeQueryComponent(day)}'))['items'] as List)
+          .cast<Map<String, dynamic>>();
+
+  Future<void> mShiftSave(Map<String, dynamic> body) => _postJson('/api/manage/shifts/save', body);
+
+  Future<void> mShiftStatus(int id, String status) => _postJson('/api/manage/shifts/status', {'id': id, 'status': status});
+
+  Future<List<Map<String, dynamic>>> mPasses() async =>
+      ((await _get('/api/manage/passes'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<void> mPassSave(Map<String, dynamic> body) => _postJson('/api/manage/passes/save', body);
+
+  Future<List<Map<String, dynamic>>> mIncidents({String status = ''}) async =>
+      ((await _get('/api/manage/incidents?status=$status'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<void> mIncidentClose(int id) => _postJson('/api/manage/incidents/close', {'id': id});
+
+  Future<List<Map<String, dynamic>>> mMembers({String q = ''}) async =>
+      ((await _get('/api/manage/members?q=${Uri.encodeQueryComponent(q)}'))['items'] as List)
+          .cast<Map<String, dynamic>>();
+
+  Future<List<Map<String, dynamic>>> mDocuments({String q = ''}) async =>
+      ((await _get('/api/manage/documents?q=${Uri.encodeQueryComponent(q)}'))['items'] as List)
+          .cast<Map<String, dynamic>>();
+
+  Future<List<Map<String, dynamic>>> mLocations() async =>
+      ((await _get('/api/manage/locations'))['items'] as List).cast<Map<String, dynamic>>();
 }

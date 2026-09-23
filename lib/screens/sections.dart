@@ -410,11 +410,116 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
     }
   }
 
+  Future<void> _start(Map<String, dynamic> s) async {
+    try {
+      await widget.api.shiftStart(s['id'] as int);
+      _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e is ApiException ? e.message : 'Ошибка', style: const TextStyle(fontFamily: 'monospace'))));
+      }
+    }
+  }
+
+  Future<void> _finish(Map<String, dynamic> s) async {
+    final report = TextEditingController();
+    String? photo;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
+            backgroundColor: kPanel,
+            title: const Text('Сдать смену', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              TextField(
+                controller: report,
+                maxLines: 3,
+                style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13),
+                decoration: const InputDecoration(labelText: 'Отчёт по смене'),
+              ),
+              const SizedBox(height: 8),
+              Row(children: [
+                OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: const BorderSide(color: kAccent2), shape: const RoundedRectangleBorder()),
+                  onPressed: () async {
+                    try {
+                      final f = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
+                      if (f != null) setD(() => photo = f.path);
+                    } catch (_) {}
+                  },
+                  icon: const Icon(Icons.camera_alt, size: 18),
+                  label: const Text('ФОТО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+                ),
+                const SizedBox(width: 10),
+                if (photo != null) const Expanded(child: Text('прикреплено', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
+              ]),
+            ]),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('СДАТЬ', style: TextStyle(fontFamily: 'monospace')),
+              ),
+            ],
+          )),
+    );
+    if (ok != true) return;
+    try {
+      await widget.api.shiftFinish(s['id'] as int, report: report.text.trim(), photoPath: photo);
+      _reload();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e is ApiException ? e.message : 'Ошибка', style: const TextStyle(fontFamily: 'monospace'))));
+      }
+    }
+  }
+
   Future<void> _swap(Map<String, dynamic> s) async {
-    await widget.api.shiftSwap(s['id'] as int);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Запрос замены отправлен', style: TextStyle(fontFamily: 'monospace'))));
+    List<Map<String, dynamic>> people = [];
+    try {
+      people = await widget.api.colleagues();
+    } catch (_) {}
+    if (!mounted) return;
+    int? toId;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
+            backgroundColor: kPanel,
+            title: const Text('Замена смены', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            content: DropdownButtonFormField<int>(
+              initialValue: toId,
+              dropdownColor: kPanel,
+              decoration: const InputDecoration(labelText: 'На кого заменить'),
+              items: [
+                const DropdownMenuItem(value: null, child: Text('— не указан —', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                ...people.map((m) => DropdownMenuItem(value: m['id'] as int, child: Text('${m['name']}', style: const TextStyle(fontFamily: 'monospace', fontSize: 13)))),
+              ],
+              onChanged: (v) => setD(() => toId = v),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Запросить', style: TextStyle(fontFamily: 'monospace')),
+              ),
+            ],
+          )),
+    );
+    if (ok != true) return;
+    try {
+      await widget.api.shiftSwap(s['id'] as int, toMemberId: toId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Запрос замены отправлен', style: TextStyle(fontFamily: 'monospace'))));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(e is ApiException ? e.message : 'Ошибка', style: const TextStyle(fontFamily: 'monospace'))));
+      }
     }
   }
 
@@ -526,20 +631,25 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
         const SizedBox(height: 6),
         Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: _subStyle),
         if (mates.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('в смене: ${mates.join(', ')}', style: _subStyle)),
-        if (planned && started)
+        if (s['status'] == 'on_shift')
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Row(children: [
-              TextButton(onPressed: () => _mark(s, 'done'), child: const Text('✓ Отработана', style: TextStyle(color: kAccent2, fontFamily: 'monospace'))),
-              TextButton(onPressed: () => _mark(s, 'absent'), child: const Text('Неявка', style: TextStyle(color: kDanger, fontFamily: 'monospace'))),
+              TextButton(onPressed: () => _finish(s), child: const Text('✓ СДАТЬ СМЕНУ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
               const Spacer(),
               TextButton(onPressed: () => _swap(s), child: const Text('Замена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
             ]),
           )
         else if (planned)
           Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Align(alignment: Alignment.centerRight, child: TextButton(onPressed: () => _swap(s), child: const Text('Запросить замену', style: TextStyle(color: kSoft, fontFamily: 'monospace')))),
+            padding: const EdgeInsets.only(top: 8),
+            child: Row(children: [
+              TextButton(onPressed: () => _start(s), child: const Text('НАЧАТЬ СМЕНУ', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
+              if (started)
+                TextButton(onPressed: () => _mark(s, 'absent'), child: const Text('Неявка', style: TextStyle(color: kDanger, fontFamily: 'monospace'))),
+              const Spacer(),
+              TextButton(onPressed: () => _swap(s), child: const Text('Замена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+            ]),
           ),
       ]),
     );
