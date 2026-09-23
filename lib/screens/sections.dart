@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../api.dart';
+import '../scan.dart';
 import '../theme.dart';
 import 'webview_screen.dart';
 
@@ -646,8 +648,31 @@ class _PassesScreenState extends State<PassesScreen> {
   Future<void> _checkin() async {
     final loc = _locations.firstWhere((l) => l['id'] == _locId, orElse: () => {'name': 'КПП-1'});
     try {
-      final dir = await widget.api.checkin(loc['name'] as String);
-      setState(() => _msg = dir == 'out' ? 'Отмечен выход' : 'Отмечен вход');
+      final pos = await currentPosition();
+      final dir = await widget.api.checkin(loc['name'] as String, lat: pos?.latitude, lng: pos?.longitude, accuracy: pos?.accuracy);
+      if (!mounted) return;
+      setState(() => _msg = (dir == 'out' ? 'Отмечен выход' : 'Отмечен вход') + (pos != null ? ' · GPS' : ''));
+      setState(() => _passes = widget.api.passes());
+      await _loadStatus();
+    } catch (e) {
+      setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+    }
+  }
+
+  Future<void> _checkinQr() async {
+    final raw = await Navigator.of(context).push<String>(MaterialPageRoute(builder: (_) => const QrScanScreen()));
+    if (raw == null || !mounted) return;
+    final token = qrToken(raw);
+    if (token == null) {
+      setState(() => _msg = 'Неверный QR-код');
+      return;
+    }
+    setState(() => _msg = 'Определяю геопозицию…');
+    final pos = await currentPosition();
+    try {
+      final dir = await widget.api.checkinQr(token, lat: pos?.latitude, lng: pos?.longitude, accuracy: pos?.accuracy);
+      if (!mounted) return;
+      setState(() => _msg = (dir == 'out' ? 'Отмечен выход' : 'Отмечен вход') + ' · QR' + (pos != null ? ' · GPS' : ''));
       setState(() => _passes = widget.api.passes());
       await _loadStatus();
     } catch (e) {
@@ -681,6 +706,12 @@ class _PassesScreenState extends State<PassesScreen> {
                   items: _locations.map((l) => DropdownMenuItem<int>(value: l['id'] as int, child: Text(l['name'] as String, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)))).toList(),
                   onChanged: (v) => setState(() => _locId = v),
                 ),
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: const BorderSide(color: kAccent2), shape: const RoundedRectangleBorder(), padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16)),
+                onPressed: _checkinQr,
+                child: const Text('QR', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
               ),
               const SizedBox(width: 8),
               FilledButton(
@@ -989,6 +1020,161 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+// ==================== ИНЦИДЕНТ / РАПОРТ ====================
+
+class ReportScreen extends StatefulWidget {
+  final ApiClient api;
+  const ReportScreen({super.key, required this.api});
+
+  @override
+  State<ReportScreen> createState() => _ReportScreenState();
+}
+
+class _ReportScreenState extends State<ReportScreen> {
+  final _title = TextEditingController();
+  final _details = TextEditingController();
+  List<Map<String, dynamic>> _locations = [];
+  int? _locId;
+  String _kind = 'incident';
+  String _severity = 'medium';
+  String? _photoPath;
+  String? _msg;
+  bool _sending = false;
+
+  static const _kinds = {'incident': 'Инцидент', 'report': 'Рапорт', 'violation': 'Нарушение'};
+  static const _severities = {'low': 'Низкая', 'medium': 'Средняя', 'high': 'Высокая', 'critical': 'Критично'};
+
+  @override
+  void initState() {
+    super.initState();
+    widget.api.locations().then((l) {
+      if (mounted) setState(() => _locations = l);
+    }).catchError((_) {});
+  }
+
+  @override
+  void dispose() {
+    _title.dispose();
+    _details.dispose();
+    super.dispose();
+  }
+
+  Future<void> _shoot() async {
+    try {
+      final file = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
+      if (file != null && mounted) setState(() => _photoPath = file.path);
+    } catch (e) {
+      if (mounted) setState(() => _msg = 'Камера недоступна: $e');
+    }
+  }
+
+  Future<void> _send() async {
+    if (_title.text.trim().isEmpty) {
+      setState(() => _msg = 'Укажите заголовок');
+      return;
+    }
+    setState(() { _sending = true; _msg = null; });
+    final pos = await currentPosition();
+    try {
+      final id = await widget.api.reportIncident(
+        title: _title.text.trim(),
+        details: _details.text.trim(),
+        kind: _kind,
+        severity: _severity,
+        locationId: _locId,
+        lat: pos?.latitude,
+        lng: pos?.longitude,
+        photoPath: _photoPath,
+      );
+      if (!mounted) return;
+      setState(() {
+        _msg = 'Отправлено (№$id)${pos != null ? ' · GPS' : ''}${_photoPath != null ? ' · фото' : ''}';
+        _title.clear();
+        _details.clear();
+        _photoPath = null;
+      });
+    } catch (e) {
+      if (mounted) setState(() => _msg = e is ApiException ? e.message : 'Ошибка');
+    } finally {
+      if (mounted) setState(() => _sending = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return _scaffold(
+      'ИНЦИДЕНТ',
+      ListView(
+        padding: const EdgeInsets.all(14),
+        children: [
+          const Text('ТИП', style: _subStyle),
+          const SizedBox(height: 6),
+          Wrap(spacing: 6, children: _kinds.entries.map((e) => _pick(e.key, _kind, e.value, (v) => setState(() => _kind = v))).toList()),
+          const SizedBox(height: 14),
+          const Text('ВАЖНОСТЬ', style: _subStyle),
+          const SizedBox(height: 6),
+          Wrap(spacing: 6, children: _severities.entries.map((e) => _pick(e.key, _severity, e.value, (v) => setState(() => _severity = v))).toList()),
+          const SizedBox(height: 14),
+          TextField(
+            controller: _title,
+            style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 14),
+            decoration: const InputDecoration(labelText: 'Заголовок'),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _details,
+            maxLines: 4,
+            style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13),
+            decoration: const InputDecoration(labelText: 'Описание'),
+          ),
+          const SizedBox(height: 12),
+          DropdownButtonFormField<int>(
+            initialValue: _locId,
+            dropdownColor: kPanel,
+            decoration: const InputDecoration(labelText: 'Объект'),
+            items: [
+              const DropdownMenuItem<int>(value: null, child: Text('— не указан —', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+              ..._locations.map((l) => DropdownMenuItem<int>(value: l['id'] as int, child: Text(l['name'] as String, style: const TextStyle(fontFamily: 'monospace', fontSize: 13)))),
+            ],
+            onChanged: (v) => setState(() => _locId = v),
+          ),
+          const SizedBox(height: 14),
+          Row(children: [
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: const BorderSide(color: kAccent2), shape: const RoundedRectangleBorder()),
+              onPressed: _shoot,
+              icon: const Icon(Icons.camera_alt, size: 18),
+              label: const Text('ФОТО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+            ),
+            const SizedBox(width: 10),
+            if (_photoPath != null)
+              const Expanded(child: Text('снимок прикреплён', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
+          ]),
+          const SizedBox(height: 16),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder(), padding: const EdgeInsets.symmetric(vertical: 16)),
+            onPressed: _sending ? null : _send,
+            child: Text(_sending ? 'ОТПРАВКА…' : 'ОТПРАВИТЬ', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+          ),
+          if (_msg != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_msg!, style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
+        ],
+      ),
+    );
+  }
+
+  Widget _pick(String value, String current, String label, ValueChanged<String> onPick) {
+    final sel = value == current;
+    return GestureDetector(
+      onTap: () => onPick(value),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(color: sel ? kAccent : kPanel, border: Border.all(color: sel ? kAccent : kLine)),
+        child: Text(label, style: TextStyle(color: sel ? kBg : kSoft, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
       ),
     );
   }

@@ -50,6 +50,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _Tile('ОБЪЕКТЫ', 'здания, посты, зоны', null, () => _open(LocationsScreen(api: widget.api))),
       _Tile('СМЕНЫ', 'моё расписание', null, () => _open(ShiftsScreen(api: widget.api))),
       _Tile('ПРОХОДЫ', 'вход / выход', null, () => _open(PassesScreen(api: widget.api))),
+      _Tile('ИНЦИДЕНТ', 'рапорт · фото · GPS', null, () => _open(ReportScreen(api: widget.api))),
       _Tile('НОВОСТИ', 'лента и объявления', null, () => _open(NewsScreen(api: widget.api))),
       _Tile('УВЕДОМЛЕНИЯ', 'что нового', unread > 0 ? '$unread' : null, () => _open(NotificationsScreen(api: widget.api))),
       if (perms.contains('manage_members'))

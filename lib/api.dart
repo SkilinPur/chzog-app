@@ -146,14 +146,59 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> passes() async =>
       ((await _get('/api/passes'))['items'] as List).cast<Map<String, dynamic>>();
 
-  Future<String> checkin(String location) async =>
-      ((await _postJson('/api/checkin', {'location': location}))['direction'] ?? '') as String;
+  Future<String> checkin(String location, {double? lat, double? lng, double? accuracy}) async {
+    final data = await _postJson('/api/checkin', {
+      'location': location,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+      if (accuracy != null) 'accuracy': accuracy,
+    });
+    return (data['direction'] ?? '') as String;
+  }
+
+  Future<String> checkinQr(String qr, {double? lat, double? lng, double? accuracy}) async {
+    final data = await _postJson('/api/checkin', {
+      'qr': qr,
+      if (lat != null) 'lat': lat,
+      if (lng != null) 'lng': lng,
+      if (accuracy != null) 'accuracy': accuracy,
+    });
+    return (data['direction'] ?? '') as String;
+  }
 
   Future<List<Map<String, dynamic>>> news() async =>
       ((await _get('/api/news'))['items'] as List).cast<Map<String, dynamic>>();
 
   Future<List<Map<String, dynamic>>> notifications() async =>
       ((await _get('/api/notifications'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<int> reportIncident({
+    required String title,
+    String details = '',
+    String kind = 'incident',
+    String severity = 'low',
+    int? locationId,
+    double? lat,
+    double? lng,
+    String? photoPath,
+  }) async {
+    await token();
+    final req = http.MultipartRequest('POST', Uri.parse('$base/api/incidents'));
+    if (_token != null) req.headers['Authorization'] = 'Bearer $_token';
+    req.fields['title'] = title;
+    req.fields['details'] = details;
+    req.fields['kind'] = kind;
+    req.fields['severity'] = severity;
+    if (locationId != null) req.fields['location_id'] = '$locationId';
+    if (lat != null) req.fields['lat'] = '$lat';
+    if (lng != null) req.fields['lng'] = '$lng';
+    if (photoPath != null) req.files.add(await http.MultipartFile.fromPath('photo', photoPath));
+    final resp = await http.Response.fromStream(
+        await req.send().timeout(const Duration(seconds: 60)));
+    final data = resp.body.isEmpty ? <String, dynamic>{} : jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 400) throw ApiException((data['error'] ?? 'error').toString());
+    return (data['id'] ?? 0) as int;
+  }
 
   Future<void> notificationsRead() => _postJson('/api/notifications/read', {});
 
