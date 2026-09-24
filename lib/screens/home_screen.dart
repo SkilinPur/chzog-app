@@ -7,6 +7,7 @@ import '../ui.dart';
 import '../updater.dart';
 import 'documents.dart';
 import 'locations.dart';
+import 'map.dart';
 import 'news.dart';
 import 'notifications.dart';
 import 'passes.dart';
@@ -181,6 +182,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ['ОСНОВНОЕ', <Widget>[
         _tile('Приказы', 'документы и подписи', Icons.description_outlined, () => _open(DocumentsScreen(api: widget.api))),
         _tile('Объекты', 'здания, посты, зоны', Icons.location_city_outlined, () => _open(LocationsScreen(api: widget.api))),
+        _tile('Карта', 'объекты на карте', Icons.map_outlined, () => _open(MapScreen(api: widget.api))),
         _tile('Смены', 'моё расписание', Icons.schedule, () => _open(ShiftsScreen(api: widget.api))),
         _tile('Проходы', 'вход / выход', Icons.login, () => _open(PassesScreen(api: widget.api))),
         _tile('Новости', 'лента и объявления', Icons.newspaper_outlined, () => _open(NewsScreen(api: widget.api))),
