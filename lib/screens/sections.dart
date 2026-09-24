@@ -5,7 +5,7 @@ import '../api.dart';
 import '../queue.dart';
 import '../scan.dart';
 import '../theme.dart';
-import 'webview_screen.dart';
+import 'locations.dart';
 
 const _titleStyle = TextStyle(color: kText, fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.bold);
 const _subStyle = TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11);
@@ -61,112 +61,6 @@ Widget _card({required String title, String? sub, Widget? leading, List<Widget> 
         ),
       ),
     );
-
-// ==================== ОБЪЕКТЫ ====================
-
-class LocationsScreen extends StatelessWidget {
-  final ApiClient api;
-  const LocationsScreen({super.key, required this.api});
-
-  @override
-  Widget build(BuildContext context) {
-    return _scaffold(
-      'ОБЪЕКТЫ',
-      FutureBuilder<List<Map<String, dynamic>>>(
-        future: api.locations(),
-        builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) return _loading();
-          if (snap.hasError) return _error(snap.error!);
-          final items = snap.data ?? [];
-          if (items.isEmpty) return _empty('Объектов нет');
-          return ListView(
-            padding: const EdgeInsets.all(14),
-            children: items
-                .map((l) => _card(
-                      leading: _thumb(l['photo']),
-                      title: l['name'] ?? '',
-                      sub: '${l['type'] ?? ''} · ${l['status'] ?? ''}${(l['zones'] ?? '') != '' ? ' · ${l['zones']}' : ''}',
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => LocationDetailScreen(api: api, id: l['id'] as int)),
-                      ),
-                    ))
-                .toList(),
-          );
-        },
-      ),
-    );
-  }
-}
-
-Widget _thumb(String? url) {
-  final u = (url ?? '');
-  if (u.isEmpty) {
-    return Container(width: 56, height: 56, color: kPanel2, child: const Icon(Icons.apartment, color: kMute));
-  }
-  return ClipRRect(
-    borderRadius: BorderRadius.zero,
-    child: Image.network(ApiClient.base + u, width: 56, height: 56, fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Container(width: 56, height: 56, color: kPanel2, child: const Icon(Icons.broken_image, color: kMute))),
-  );
-}
-
-class LocationDetailScreen extends StatelessWidget {
-  final ApiClient api;
-  final int id;
-  const LocationDetailScreen({super.key, required this.api, required this.id});
-
-  @override
-  Widget build(BuildContext context) {
-    return _scaffold(
-      'ОБЪЕКТ',
-      FutureBuilder<Map<String, dynamic>>(
-        future: api.location(id),
-        builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) return _loading();
-          if (snap.hasError) return _error(snap.error!);
-          final l = snap.data!;
-          final photo = (l['photo'] ?? '').toString();
-          final rows = {
-            'Тип': l['type'],
-            'Состояние': l['status'],
-            'Зоны': l['zones'],
-            'Описание': l['description'],
-          };
-          return ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (photo.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 14),
-                  child: Image.network(ApiClient.base + photo, fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink()),
-                ),
-              Text(l['name'] ?? '', style: _titleStyle.copyWith(fontSize: 18)),
-              const SizedBox(height: 12),
-              ...rows.entries.map((e) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      SizedBox(width: 110, child: Text(e.key.toUpperCase(), style: _subStyle)),
-                      Expanded(child: Text('${e.value ?? '—'}', style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13))),
-                    ]),
-                  )),
-              if ((l['coords_url'] ?? '') != '')
-                Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => WebViewScreen(url: l['coords_url'] as String, title: 'КАРТА'),
-                    )),
-                    child: const Text('Открыть на карте', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
-                  ),
-                ),
-            ],
-          );
-        },
-      ),
-    );
-  }
-}
 
 // ==================== СМЕНЫ ====================
 

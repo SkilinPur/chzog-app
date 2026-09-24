@@ -135,8 +135,21 @@ class ApiClient {
   Future<void> sign(int docId, int signId, String status) =>
       _postJson('/api/documents/$docId/sign', {'sign_id': signId, 'status': status});
 
-  Future<List<Map<String, dynamic>>> locations() async =>
-      ((await _get('/api/locations'))['items'] as List).cast<Map<String, dynamic>>();
+  Future<List<Map<String, dynamic>>> locations({String q = '', String type = ''}) async {
+    final query = <String>[
+      if (q.isNotEmpty) 'q=${Uri.encodeQueryComponent(q)}',
+      if (type.isNotEmpty) 'type=${Uri.encodeQueryComponent(type)}',
+    ].join('&');
+    return ((await _get('/api/locations${query.isEmpty ? '' : '?$query'}'))['items'] as List).cast<Map<String, dynamic>>();
+  }
+
+  Future<Map<String, dynamic>> locationsData({String q = '', String type = ''}) async {
+    final query = <String>[
+      if (q.isNotEmpty) 'q=${Uri.encodeQueryComponent(q)}',
+      if (type.isNotEmpty) 'type=${Uri.encodeQueryComponent(type)}',
+    ].join('&');
+    return (await _get('/api/locations${query.isEmpty ? '' : '?$query'}')) as Map<String, dynamic>;
+  }
 
   Future<Map<String, dynamic>> location(int id) async =>
       (await _get('/api/locations/$id'))['location'] as Map<String, dynamic>;

@@ -6,6 +6,7 @@ import '../theme.dart';
 import '../ui.dart';
 import '../updater.dart';
 import 'documents.dart';
+import 'locations.dart';
 import 'manage.dart';
 import 'profile.dart';
 import 'sections.dart';
