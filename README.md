@@ -1,51 +1,23 @@
-# ЧЗОГ — мобильное приложение
+# ЧЗОГ — мобильное приложение участника
 
-Приложение участника организации **ЧЗОГ** (Чернобыльская Зона Отчуждения, «Гостинка»).
-Работает через API сайта `chzog.iniproject.ru` — данные общие с сайтом и ботом.
+Flutter-приложение организации ЧЗОГ для сотрудников.
 
-Стиль: тёмный оперативный (фон `#0B0E11`, акцент `#F0B429`, моно-шрифт).
+## Возможности
+- Вход (логин/пароль + 2FA TOTP), профиль (данные, смена пароля, 2FA, часовой пояс, привязка Telegram, напоминание о смене).
+- Приказы (поиск/фильтры, подпись/отклонение, PDF), объекты (карточки, фото, карта объектов), смены (календарь-месяц, старт/сдача с отчётом и фото, замена), проходы (QR + геолокация + «на объекте»), инцидент (шаблоны, фото, GPS), заявка, новости, уведомления (колокольчик).
+- Офлайн-очередь действий, авто-обновление APK с GitHub, push (Firebase FCM), баннер уведомлений при открытом приложении.
 
 ## Стек
+- Flutter/Dart, Material 3, тёмная тема; без стейт-менеджмента (`StatefulWidget` + `FutureBuilder`).
+- Пакеты: `http`, `flutter_secure_storage`, `firebase_core`, `firebase_messaging`, `flutter_local_notifications`, `mobile_scanner`, `geolocator`, `image_picker`, `webview_flutter`, `url_launcher`, `package_info_plus`, `path_provider`, `open_filex`, `shared_preferences`.
 
-- **Flutter** (Dart) — одна кодовая база: Android сейчас, iOS позже.
-- **http** — запросы к API, **flutter_secure_storage** — хранение токена,
-  **webview_flutter** — встроенный браузер (карты, PDF).
-
-## Экраны
-
-- **Вход** — логин/пароль + шаг 2FA; токен сохраняется.
-- **Главная** — профиль (должность, дело, допуск, пояс) и плитки разделов.
-- **Приказы** — список → карточка (шапка вида, текст, поля, подписи) → **подписать/отложить**, PDF.
-- **Объекты** — паспорт объекта → карта во встроенном браузере.
-- **Смены** — моё расписание.
-- **Проходы** — отметка вход/выход + история.
-- **Новости**, **Уведомления**, **Анкеты** (для кадровиков).
-
-Подробный сценарий — в [`UX.md`](UX.md).
-
-## Сборка и запуск
-
+## Сборка и релиз
 ```bash
-flutter pub get
-flutter run -d <device>            # запуск на устройстве/эмуляторе
-flutter build apk --debug          # debug-APK
-flutter build apk --release        # release-APK (для раздачи)
+flutter build apk --release          # подпись: android/key.properties (в .gitignore)
+# APK → uploads/app/chzog-<ver>.apk на сайте; авто-обновление по /api/app/version
+gh release create vX.Y.Z build/app/outputs/flutter-apk/app-release.apk
 ```
-
-Требуется Android SDK; для эмулятора — KVM. При нехватке памяти сборки уменьшить
-`org.gradle.jvmargs` в `android/gradle.properties` (например, `-Xmx3G`).
+`android/app/google-services.json` — вне репозитория (.gitignore), проект Firebase `iniproject-chzog`.
 
 ## API
-
-Бэкенд — репозиторий `SkilinPur/chzog-v2`. Используются эндпоинты под Bearer-токен:
-`/api/auth/login` (+2FA), `/api/auth/2fa`, `/api/me`, `/api/documents` (+подпись),
-`/api/locations`, `/api/shifts`, `/api/passes`, `/api/checkin`, `/api/news`,
-`/api/notifications`, `/api/applications`.
-
-## Этапы
-
-- ✅ Этап 1 — API авторизации (на сайте).
-- ✅ Этап 2 — вход и профиль.
-- ✅ Этап 3 — разделы (приказы/подписи, объекты/карта, смены, проходы, новости, уведомления, анкеты).
-- ⏳ Этап 4 — камера (фото инцидента, QR), GPS, push, офлайн.
-- ⏳ Этап 5 — релиз (APK → Google Play; iOS — на Mac/TestFlight).
+`https://chzog.iniproject.ru/api/*` (Bearer-токен). См. `app/routers/app_api.py` в chzog-v2.
