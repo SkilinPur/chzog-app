@@ -5,6 +5,7 @@ import '../queue.dart';
 import '../theme.dart';
 import '../ui.dart';
 import '../updater.dart';
+import 'documents.dart';
 import 'manage.dart';
 import 'profile.dart';
 import 'sections.dart';

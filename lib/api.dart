@@ -121,8 +121,13 @@ class ApiClient {
 
   Future<Map<String, dynamic>> home() async => (await _get('/api/home')) as Map<String, dynamic>;
 
-  Future<List<Map<String, dynamic>>> documents() async =>
-      ((await _get('/api/documents'))['items'] as List).cast<Map<String, dynamic>>();
+  Future<List<Map<String, dynamic>>> documents({String q = '', String status = ''}) async {
+    final query = <String>[
+      if (q.isNotEmpty) 'q=${Uri.encodeQueryComponent(q)}',
+      if (status.isNotEmpty) 'status=$status',
+    ].join('&');
+    return ((await _get('/api/documents${query.isEmpty ? '' : '?$query'}'))['items'] as List).cast<Map<String, dynamic>>();
+  }
 
   Future<Map<String, dynamic>> document(int id) async =>
       (await _get('/api/documents/$id'))['document'] as Map<String, dynamic>;
