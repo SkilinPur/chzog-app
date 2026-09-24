@@ -179,6 +179,13 @@ class _HomeScreenState extends State<HomeScreen> {
               childAspectRatio: 1.45,
               children: tiles.map((t) => _tile(t)).toList(),
             ),
+            const Padding(
+              padding: EdgeInsets.only(top: 24, bottom: 10),
+              child: Center(
+                child: Text('App by InIProject - SkilinPur',
+                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: kMute)),
+              ),
+            ),
           ],
         ),
       ),
