@@ -241,6 +241,9 @@ class ApiClient {
   Future<List<Map<String, dynamic>>> notifications() async =>
       ((await _get('/api/notifications'))['items'] as List).cast<Map<String, dynamic>>();
 
+  Future<List<Map<String, dynamic>>> incidentTemplates() async =>
+      ((await _get('/api/incident-templates'))['items'] as List).cast<Map<String, dynamic>>();
+
   Future<int> reportIncident({
     required String title,
     String details = '',

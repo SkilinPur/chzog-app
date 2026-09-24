@@ -8,6 +8,8 @@ import '../updater.dart';
 import 'documents.dart';
 import 'locations.dart';
 import 'passes.dart';
+import 'report.dart';
+import 'request.dart';
 import 'manage.dart';
 import 'profile.dart';
 import 'sections.dart';
