@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
 import 'fcm.dart';
+import 'scan.dart';
 import 'queue.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -60,6 +61,7 @@ class _RootGateState extends State<RootGate> {
       OfflineQueue.flush(_api);
       _maybeBroadcast();
       initFcm(_api);
+      reportPosition(_api);
     } catch (_) {
       setState(() => _summary = null);
     } finally {

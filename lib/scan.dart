@@ -53,6 +53,14 @@ class _QrScanScreenState extends State<QrScanScreen> {
   }
 }
 
+Future<void> reportPosition(dynamic api) async {
+  final pos = await currentPosition();
+  if (pos == null) return;
+  try {
+    await api.position(pos.latitude, pos.longitude);
+  } catch (_) {}
+}
+
 String? qrToken(String raw) {
   const prefix = 'CHZOG-LOC:';
   final t = raw.trim();

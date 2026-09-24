@@ -203,6 +203,8 @@ class ApiClient {
 
   Future<void> registerDevice(String token) => _postJson('/api/device/register', {'token': token});
 
+  Future<void> position(double lat, double lng) => _postJson('/api/position', {'lat': lat, 'lng': lng});
+
   Future<Map<String, dynamic>?> broadcast() async {
     final d = await _get('/api/broadcast');
     return (d['broadcast'] as Map?)?.cast<String, dynamic>();

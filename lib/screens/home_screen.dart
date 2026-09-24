@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import 'dart:async';
+
 import '../queue.dart';
+import '../scan.dart';
 import '../theme.dart';
 import '../ui.dart';
 import '../updater.dart';
@@ -40,6 +43,15 @@ class _HomeScreenState extends State<HomeScreen> {
     s = widget.summary;
     _loadPending();
     appVersion().then((v) { if (mounted) setState(() => _ver = v); });
+    _startPosTimer();
+  }
+
+  Timer? _posTimer;
+
+  @override
+  void dispose() {
+    _posTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadPending() async {
@@ -79,6 +91,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
     ]);
+  }
+
+  void _startPosTimer() {
+    _posTimer?.cancel();
+    _posTimer = Timer.periodic(const Duration(minutes: 5), (_) => reportPosition(widget.api));
   }
 
   void _open(Widget screen) async {
