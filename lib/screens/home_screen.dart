@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../api.dart';
 import '../queue.dart';
 import '../theme.dart';
+import '../ui.dart';
 import '../updater.dart';
 import 'manage.dart';
 import 'profile.dart';
@@ -41,8 +42,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final sent = await OfflineQueue.flush(widget.api);
     await _loadPending();
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(sent > 0 ? 'Отправлено: $sent' : 'Нет сети', style: const TextStyle(fontFamily: 'monospace'))));
+      toast(context, sent > 0 ? 'Отправлено: $sent' : 'Нет сети');
     }
   }
 
@@ -69,29 +69,6 @@ class _HomeScreenState extends State<HomeScreen> {
     final onSite = s['on_site'] == true;
     final nextShift = s['next_shift'] as Map?;
 
-    final tiles = <_Tile>[
-      _Tile('ПРИКАЗЫ', 'документы и подписи', pending > 0 ? '$pending' : null, () => _open(DocumentsScreen(api: widget.api))),
-      _Tile('ОБЪЕКТЫ', 'здания, посты, зоны', null, () => _open(LocationsScreen(api: widget.api))),
-      _Tile('СМЕНЫ', 'моё расписание', null, () => _open(ShiftsScreen(api: widget.api))),
-      _Tile('ПРОХОДЫ', 'вход / выход', null, () => _open(PassesScreen(api: widget.api))),
-      _Tile('ИНЦИДЕНТ', 'рапорт · фото · GPS', null, () => _open(ReportScreen(api: widget.api))),
-      _Tile('ЗАЯВКА', 'внутренняя', null, () => _open(RequestScreen(api: widget.api))),
-      _Tile('НОВОСТИ', 'лента и объявления', null, () => _open(NewsScreen(api: widget.api))),
-      _Tile('УВЕДОМЛЕНИЯ', 'что нового', unread > 0 ? '$unread' : null, () => _open(NotificationsScreen(api: widget.api))),
-      if (perms.contains('manage_members'))
-        _Tile('АНКЕТЫ', 'заявки на службу', null, () => _open(ApplicationsScreen(api: widget.api))),
-      if (perms.contains('manage_security'))
-        _Tile('ВСЕ СМЕНЫ', 'табель', null, () => _open(ManageShiftsScreen(api: widget.api))),
-      if (perms.contains('manage_security'))
-        _Tile('ЖУРНАЛ ПРОХОДОВ', 'кто где', null, () => _open(ManagePassesScreen(api: widget.api))),
-      if (perms.contains('manage_security'))
-        _Tile('ИНЦИДЕНТЫ', 'ССБ', null, () => _open(ManageIncidentsScreen(api: widget.api))),
-      if (perms.contains('manage_services'))
-        _Tile('ЗАЯВКИ', 'внутренние', null, () => _open(ManageRequestsScreen(api: widget.api))),
-      if (perms.contains('manage_members'))
-        _Tile('ЛИЧНЫЕ ДЕЛА', 'участники', null, () => _open(ManageMembersScreen(api: widget.api))),
-    ];
-
     return Scaffold(
       appBar: AppBar(
         title: Text('ЧЗОГ · КАБИНЕТ${_ver.isEmpty ? '' : ' · v$_ver'}',
@@ -102,52 +79,42 @@ class _HomeScreenState extends State<HomeScreen> {
         ],
       ),
       body: RefreshIndicator(
-        color: kAccent,
-        backgroundColor: kPanel,
         onRefresh: _refresh,
+        color: kAccent,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(14),
           children: [
-            InkWell(
-              onTap: () => _open(ProfileScreen(api: widget.api)),
-              child: Container(
-              decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine2)),
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(children: [
-                    Expanded(child: Text(user['login'] ?? '',
-                        style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold))),
-                    const Icon(Icons.chevron_right, color: kMute),
+            // профиль
+            card(
+              Row(children: [
+                Text('${user['avatar'] ?? '🧭'}', style: const TextStyle(fontSize: 30)),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Text('${user['login'] ?? ''}', style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('${user['role'] ?? ''}${('${user['member'] ?? ''}').isEmpty ? '' : ' · ${user['member']}'}', style: kSub),
                   ]),
-                  const SizedBox(height: 10),
-                  _kv('Должность', (user['role'] ?? '—').toString()),
-                  _kv('Дело', (user['member'] ?? '—').toString()),
-                  _kv('Позывной', (user['callsign'] ?? '—').toString()),
-                  _kv('Подразделение', (user['department'] ?? '—').toString()),
-                  _kv('Допуск', (user['clearance'] ?? '—').toString()),
-                  _kv('Пояс', (user['timezone'] ?? '—').toString()),
-                  _kv('2FA', user['totp'] == true ? 'включена' : 'выключена'),
-                ],
-              ),
-              ),
+                ),
+                const Icon(Icons.chevron_right, color: kMute),
+              ]),
+              onTap: () => _open(ProfileScreen(api: widget.api)),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
+            // показатели
             Row(children: [
-              Expanded(child: _stat(onSite ? 'НА ОБЪЕКТЕ' : 'НЕ НА ОБЪЕКТЕ', onSite ? kAccent2 : kSoft,
-                  (s['on_site_location'] ?? '').toString())),
+              _stat(onSite ? 'НА ОБЪЕКТЕ' : 'НЕ НА ОБЪЕКТЕ', onSite ? 'да' : '—', Icons.place_outlined,
+                  () => _open(PassesScreen(api: widget.api)), accent: onSite ? kAccent2 : kSoft),
               const SizedBox(width: 8),
-              Expanded(child: _stat('НА ПОДПИСЬ', pending > 0 ? kAccent : kSoft, '$pending')),
+              _stat('НА ПОДПИСЬ', '$pending', Icons.draw_outlined,
+                  () => _open(DocumentsScreen(api: widget.api)), accent: pending > 0 ? kAccent : kSoft),
               const SizedBox(width: 8),
-              Expanded(child: _stat('УВЕДОМЛ.', unread > 0 ? kAccent : kSoft, '$unread')),
+              _stat('УВЕДОМЛ.', '$unread', Icons.notifications_none,
+                  () => _open(NotificationsScreen(api: widget.api)), accent: unread > 0 ? kAccent : kSoft),
             ]),
             if (nextShift != null) ...[
               const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(color: kPanel, border: Border.all(color: kAccent)),
-                padding: const EdgeInsets.all(14),
-                child: Row(children: [
+              card(
+                Row(children: [
                   const Icon(Icons.schedule, color: kAccent),
                   const SizedBox(width: 10),
                   Expanded(
@@ -157,101 +124,113 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13)),
                     ]),
                   ),
+                  const Icon(Icons.chevron_right, color: kMute),
                 ]),
+                onTap: () => _open(ShiftsScreen(api: widget.api)),
               ),
             ],
             if (_pending > 0) ...[
               const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(color: kPanel, border: Border.all(color: kAccent2)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(children: [
+              card(
+                Row(children: [
                   const Icon(Icons.cloud_off, color: kAccent2, size: 20),
                   const SizedBox(width: 10),
-                  Expanded(
-                    child: Text('$_pending действий ждут сети',
-                        style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12)),
-                  ),
+                  Expanded(child: Text('$_pending действий ждут сети', style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
                   TextButton(onPressed: _sync, child: const Text('ОТПРАВИТЬ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
                 ]),
               ),
             ],
-            const SizedBox(height: 18),
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-              childAspectRatio: 1.45,
-              children: tiles.map((t) => _tile(t)).toList(),
-            ),
-            const Padding(
-              padding: EdgeInsets.only(top: 24, bottom: 10),
-              child: Center(
-                child: Text('App by InIProject - SkilinPur',
-                    style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: kMute)),
-              ),
-            ),
+            const SizedBox(height: 16),
+            groupHeader('РАЗДЕЛЫ'),
+            _tiles(perms),
+            const SizedBox(height: 16),
+            creditFooter(),
           ],
         ),
       ),
     );
   }
 
-  Widget _kv(String k, String v) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 3),
-        child: Row(children: [
-          SizedBox(width: 120, child: Text(k.toUpperCase(), style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11))),
-          Expanded(child: Text(v, style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13))),
-        ]),
+  Widget _stat(String label, String value, IconData icon, VoidCallback onTap, {Color accent = kAccent}) => Expanded(
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+            decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
+            child: Column(children: [
+              Icon(icon, size: 20, color: accent),
+              const SizedBox(height: 6),
+              Text(value, style: TextStyle(color: accent, fontFamily: 'monospace', fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 2),
+              Text(label, textAlign: TextAlign.center, style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 9, letterSpacing: 0.5)),
+            ]),
+          ),
+        ),
       );
 
-  Widget _stat(String label, Color color, String value) => Container(
-        decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-        child: Column(children: [
-          Text(value.isEmpty ? '—' : value,
-              style: TextStyle(color: color, fontFamily: 'monospace', fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 4),
-          Text(label, textAlign: TextAlign.center, style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 9, letterSpacing: 0.5)),
-        ]),
-      );
+  Widget _tiles(List<String> perms) {
+    final groups = <List<Object>>[
+      ['ОСНОВНОЕ', <Widget>[
+        _tile('Приказы', 'документы и подписи', Icons.description_outlined, () => _open(DocumentsScreen(api: widget.api))),
+        _tile('Объекты', 'здания, посты, зоны', Icons.location_city_outlined, () => _open(LocationsScreen(api: widget.api))),
+        _tile('Смены', 'моё расписание', Icons.schedule, () => _open(ShiftsScreen(api: widget.api))),
+        _tile('Проходы', 'вход / выход', Icons.login, () => _open(PassesScreen(api: widget.api))),
+        _tile('Новости', 'лента и объявления', Icons.newspaper_outlined, () => _open(NewsScreen(api: widget.api))),
+        _tile('Уведомления', 'что нового', Icons.notifications_none, () => _open(NotificationsScreen(api: widget.api))),
+      ]],
+      ['ДЕЙСТВИЯ', <Widget>[
+        _tile('Инцидент', 'рапорт · фото · GPS', Icons.report_problem_outlined, () => _open(ReportScreen(api: widget.api))),
+        _tile('Заявка', 'баг · идея · доступ', Icons.assignment_outlined, () => _open(RequestScreen(api: widget.api))),
+      ]],
+      ['РУКОВОДИТЕЛЮ', <Widget>[
+        if (perms.contains('manage_security')) _tile('Все смены', 'табель', Icons.event_note_outlined, () => _open(ManageShiftsScreen(api: widget.api))),
+        if (perms.contains('manage_security')) _tile('Журнал проходов', 'кто где', Icons.list_alt_outlined, () => _open(ManagePassesScreen(api: widget.api))),
+        if (perms.contains('manage_security')) _tile('Инциденты', 'ССБ, нарушения', Icons.warning_amber_outlined, () => _open(ManageIncidentsScreen(api: widget.api))),
+        if (perms.contains('manage_services')) _tile('Заявки', 'внутренние', Icons.assignment_outlined, () => _open(ManageRequestsScreen(api: widget.api))),
+        if (perms.contains('manage_members')) _tile('Личные дела', 'участники', Icons.folder_shared_outlined, () => _open(ManageMembersScreen(api: widget.api))),
+        if (perms.contains('manage_members')) _tile('Анкеты', 'заявки на службу', Icons.how_to_reg_outlined, () => _open(ApplicationsScreen(api: widget.api))),
+      ]],
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: groups.where((g) => (g[1] as List).isNotEmpty).map((g) {
+        final tiles = g[1] as List<Widget>;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Row(children: [
+                Text('${g[0]}', style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11, letterSpacing: 2)),
+                const SizedBox(width: 8),
+                Expanded(child: Container(height: 1, color: kLine)),
+              ]),
+            ),
+            ...tiles.map((t) => Padding(padding: const EdgeInsets.only(bottom: 8), child: t)),
+            const SizedBox(height: 4),
+          ],
+        );
+      }).toList(),
+    );
+  }
 
-  Widget _tile(_Tile t) => InkWell(
-        onTap: t.onTap,
+  Widget _tile(String title, String sub, IconData icon, VoidCallback onTap) => InkWell(
+        onTap: onTap,
         child: Container(
           decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
-          padding: const EdgeInsets.all(14),
-          child: Stack(children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(t.title, style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 15, fontWeight: FontWeight.bold, letterSpacing: 1)),
-                const SizedBox(height: 6),
-                Text(t.sub, style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11)),
-              ],
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          child: Row(children: [
+            Icon(icon, color: kAccent, size: 22),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title, style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 2),
+                Text(sub, style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11)),
+              ]),
             ),
-            if (t.badge != null)
-              Positioned(
-                right: 0,
-                top: 0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(color: kAccent),
-                  child: Text(t.badge!, style: const TextStyle(color: kBg, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
-                ),
-              ),
+            const Icon(Icons.chevron_right, color: kMute, size: 20),
           ]),
         ),
       );
-}
-
-class _Tile {
-  final String title;
-  final String sub;
-  final String? badge;
-  final VoidCallback onTap;
-  _Tile(this.title, this.sub, this.badge, this.onTap);
 }
