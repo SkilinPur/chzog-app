@@ -194,6 +194,9 @@ class ApiClient {
 
   Future<void> profileTimezone(String tz) => _postJson('/api/profile/timezone', {'timezone': tz});
 
+  Future<void> profileReminder({required bool enabled, required int minutes}) =>
+      _postJson('/api/profile/reminder', {'enabled': enabled, 'minutes': minutes});
+
   Future<String> profileLinkCode() async => ((await _postJson('/api/profile/link-code', {}))['code'] ?? '') as String;
 
   Future<void> profileUnlink() => _postJson('/api/profile/unlink', {});

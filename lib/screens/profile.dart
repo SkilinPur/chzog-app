@@ -193,6 +193,55 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _reminder(Map<String, dynamic> d) async {
+    var enabled = d['shift_reminder'] == true;
+    var minutes = (d['shift_reminder_minutes'] ?? 30) as int;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
+            backgroundColor: kPanel,
+            title: const Text('Напоминание о смене', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Напоминать о смене', style: TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13)),
+                value: enabled,
+                activeThumbColor: kAccent,
+                onChanged: (v) => setD(() => enabled = v),
+              ),
+              DropdownButtonFormField<int>(
+                key: ValueKey('rem-$minutes'),
+                initialValue: minutes,
+                dropdownColor: kPanel,
+                decoration: const InputDecoration(labelText: 'За сколько'),
+                items: const [
+                  DropdownMenuItem(value: 15, child: Text('15 минут', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 30, child: Text('30 минут', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 60, child: Text('1 час', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 120, child: Text('2 часа', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                ],
+                onChanged: (v) => setD(() => minutes = v ?? 30),
+              ),
+            ]),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Сохранить', style: TextStyle(fontFamily: 'monospace')),
+              ),
+            ],
+          )),
+    );
+    if (ok != true) return;
+    try {
+      await widget.api.profileReminder(enabled: enabled, minutes: minutes);
+      _reload();
+    } catch (e) {
+      if (mounted) _toast(context, e is ApiException ? e.message : 'Ошибка', error: true);
+    }
+  }
+
   Future<void> _telegram(Map<String, dynamic> d) async {
     if (d['telegram'] == true) {
       await widget.api.profileUnlink();
@@ -270,6 +319,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 10),
                 Expanded(child: Text('Пояс: ${d['timezone'] ?? ''}', style: _title)),
                 TextButton(onPressed: () => _timezone(d), child: const Text('Изменить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+              ])),
+              _card(Row(children: [
+                const Icon(Icons.alarm, color: kAccent, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Напоминание о смене', style: _title),
+                  Text(d['shift_reminder'] == true ? 'за ${d['shift_reminder_minutes']} мин' : 'выключено', style: _sub),
+                ])),
+                TextButton(onPressed: () => _reminder(d), child: const Text('Настроить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
               ])),
               _card(Row(children: [
                 const Icon(Icons.send_outlined, color: kAccent, size: 18),

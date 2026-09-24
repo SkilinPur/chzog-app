@@ -64,6 +64,23 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadPending();
   }
 
+  Widget _bell() {
+    final unread = (s['unread'] ?? 0) as int;
+    return Stack(children: [
+      const Icon(Icons.notifications_none, color: kSoft),
+      if (unread > 0)
+        Positioned(
+          right: 0,
+          top: 0,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+            decoration: BoxDecoration(color: kDanger, borderRadius: BorderRadius.circular(8)),
+            child: Text('$unread', style: const TextStyle(color: Colors.white, fontSize: 9, fontFamily: 'monospace')),
+          ),
+        ),
+    ]);
+  }
+
   void _open(Widget screen) async {
     await Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
     _refresh();
@@ -83,6 +100,7 @@ class _HomeScreenState extends State<HomeScreen> {
         title: Text('ЧЗОГ · КАБИНЕТ${_ver.isEmpty ? '' : ' · v$_ver'}',
             style: const TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2)),
         actions: [
+          IconButton(tooltip: 'Уведомления', onPressed: () => _open(NotificationsScreen(api: widget.api)), icon: _bell()),
           IconButton(tooltip: 'Обновить', onPressed: _refresh, icon: const Icon(Icons.refresh, color: kSoft)),
           IconButton(tooltip: 'Выйти', onPressed: widget.onLogout, icon: const Icon(Icons.logout, color: kSoft)),
         ],
