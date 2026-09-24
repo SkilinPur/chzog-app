@@ -167,6 +167,19 @@ class ApiClient {
 
   Future<Map<String, dynamic>> passState() async => (await _get('/api/passes/state')) as Map<String, dynamic>;
 
+  Future<Map<String, dynamic>> profile() async => (await _get('/api/profile')) as Map<String, dynamic>;
+
+  Future<void> profilePassword(String current, String next) => _postJson('/api/profile/password', {'current': current, 'new': next});
+
+  Future<Map<String, dynamic>> profile2fa(String action, {String code = '', String password = ''}) =>
+      _postJson('/api/profile/2fa', {'action': action, 'code': code, 'password': password});
+
+  Future<void> profileTimezone(String tz) => _postJson('/api/profile/timezone', {'timezone': tz});
+
+  Future<String> profileLinkCode() async => ((await _postJson('/api/profile/link-code', {}))['code'] ?? '') as String;
+
+  Future<void> profileUnlink() => _postJson('/api/profile/unlink', {});
+
   Future<Map<String, dynamic>?> broadcast() async {
     final d = await _get('/api/broadcast');
     return (d['broadcast'] as Map?)?.cast<String, dynamic>();

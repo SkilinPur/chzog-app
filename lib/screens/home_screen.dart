@@ -5,6 +5,7 @@ import '../queue.dart';
 import '../theme.dart';
 import '../updater.dart';
 import 'manage.dart';
+import 'profile.dart';
 import 'sections.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -107,14 +108,19 @@ class _HomeScreenState extends State<HomeScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            Container(
+            InkWell(
+              onTap: () => _open(ProfileScreen(api: widget.api)),
+              child: Container(
               decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine2)),
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(user['login'] ?? '',
-                      style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold)),
+                  Row(children: [
+                    Expanded(child: Text(user['login'] ?? '',
+                        style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold))),
+                    const Icon(Icons.chevron_right, color: kMute),
+                  ]),
                   const SizedBox(height: 10),
                   _kv('Должность', (user['role'] ?? '—').toString()),
                   _kv('Дело', (user['member'] ?? '—').toString()),
@@ -124,6 +130,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   _kv('Пояс', (user['timezone'] ?? '—').toString()),
                   _kv('2FA', user['totp'] == true ? 'включена' : 'выключена'),
                 ],
+              ),
               ),
             ),
             const SizedBox(height: 12),
