@@ -10,6 +10,7 @@ import 'locations.dart';
 import 'manage.dart';
 import 'profile.dart';
 import 'sections.dart';
+import 'shifts.dart';
 
 class HomeScreen extends StatefulWidget {
   final ApiClient api;
