@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
+import 'fcm.dart';
 import 'queue.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -51,6 +52,7 @@ class _RootGateState extends State<RootGate> {
       setState(() => _summary = summary);
       OfflineQueue.flush(_api);
       _maybeBroadcast();
+      initFcm(_api);
     } catch (_) {
       setState(() => _summary = null);
     } finally {

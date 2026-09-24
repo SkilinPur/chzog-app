@@ -198,6 +198,8 @@ class ApiClient {
 
   Future<void> profileUnlink() => _postJson('/api/profile/unlink', {});
 
+  Future<void> registerDevice(String token) => _postJson('/api/device/register', {'token': token});
+
   Future<Map<String, dynamic>?> broadcast() async {
     final d = await _get('/api/broadcast');
     return (d['broadcast'] as Map?)?.cast<String, dynamic>();
