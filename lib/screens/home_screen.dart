@@ -7,6 +7,8 @@ import '../ui.dart';
 import '../updater.dart';
 import 'documents.dart';
 import 'locations.dart';
+import 'news.dart';
+import 'notifications.dart';
 import 'passes.dart';
 import 'report.dart';
 import 'request.dart';
