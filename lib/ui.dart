@@ -121,7 +121,7 @@ Widget searchBox(TextEditingController c, {String hint = 'Поиск', VoidCallb
       onSubmitted: (_) => onSubmit?.call(),
     );
 
-Widget loading() => const Center(child: CircularProgressIndicator(color: kAccent));
+Widget loading() => Center(child: CircularProgressIndicator(color: kAccent));
 
 Widget empty(String t) => Center(
       child: Padding(
@@ -194,11 +194,11 @@ Widget infoRow(String label, String value) => Padding(
       ]),
     );
 
-Widget creditFooter() => const Padding(
-      padding: EdgeInsets.only(top: 24, bottom: 10),
+Widget creditFooter([String? version]) => Padding(
+      padding: const EdgeInsets.only(top: 24, bottom: 10),
       child: Center(
-        child: Text('App by InIProject - SkilinPur',
-            style: TextStyle(fontFamily: 'monospace', fontSize: 10, color: kMute)),
+        child: Text('App by InIProject - SkilinPur${(version ?? '').isEmpty ? '' : ' · v$version'}',
+            style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: kMute)),
       ),
     );
 

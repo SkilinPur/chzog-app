@@ -114,8 +114,8 @@ class _LocationsScreenState extends State<LocationsScreen> {
           height: 52,
           decoration: BoxDecoration(color: kBg, border: Border.all(color: kLine)),
           child: url.isEmpty
-              ? const Icon(Icons.location_city_outlined, color: kAccent, size: 22)
-              : Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(Icons.location_city_outlined, color: kAccent, size: 22)),
+              ? Icon(Icons.location_city_outlined, color: kAccent, size: 22)
+              : Image.network(url, fit: BoxFit.cover, errorBuilder: (_, __, ___) => Icon(Icons.location_city_outlined, color: kAccent, size: 22)),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -184,7 +184,7 @@ class _LocationDetailScreenState extends State<LocationDetailScreen> {
                   ),
                 ),
               card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${l['name']}', style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('${l['name']}', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 8),
                 infoRow('Тип', '${l['type'] ?? ''}'),
                 infoRow('Состояние', '${l['status'] ?? ''}'),
@@ -193,12 +193,12 @@ class _LocationDetailScreenState extends State<LocationDetailScreen> {
               ])),
               if (mapUrl.isNotEmpty)
                 card(Row(children: [
-                  const Icon(Icons.map_outlined, color: kAccent),
+                  Icon(Icons.map_outlined, color: kAccent),
                   const SizedBox(width: 10),
                   const Expanded(child: Text('Координаты', style: kTitle)),
                   TextButton(
                     onPressed: () => launchUrl(Uri.parse(mapUrl), mode: LaunchMode.externalApplication),
-                    child: const Text('На карте', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
+                    child: Text('На карте', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
                   ),
                 ])),
               creditFooter(),

@@ -46,7 +46,7 @@ class Updater {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: kPanel,
-        title: const Text('Доступно обновление',
+        title: Text('Доступно обновление',
             style: TextStyle(fontFamily: 'monospace', color: kAccent)),
         content: Text('Новая версия: $version\n\nСкачать и установить?',
             style: const TextStyle(fontFamily: 'monospace', color: kText)),
@@ -55,7 +55,7 @@ class Updater {
               onPressed: () => Navigator.pop(context, false),
               child: const Text('Позже', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('СКАЧАТЬ', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
           ),

@@ -57,7 +57,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 child: Row(children: [
                   Text('непрочитанных: $unread', style: kSub),
                   const Spacer(),
-                  TextButton(onPressed: _readAll, child: const Text('Прочитать всё', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+                  TextButton(onPressed: _readAll, child: Text('Прочитать всё', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
                 ]),
               ),
             Expanded(
@@ -72,7 +72,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                               border: n['read'] == true ? kLine : kAccent,
                               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Row(children: [
-                                  if (n['read'] != true) const Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.circle, size: 8, color: kAccent)),
+                                  if (n['read'] != true) Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.circle, size: 8, color: kAccent)),
                                   Expanded(child: Text('${n['title']}', style: kTitle)),
                                 ]),
                                 if (('${n['body'] ?? ''}').isNotEmpty)

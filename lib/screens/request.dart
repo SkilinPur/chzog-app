@@ -87,11 +87,11 @@ class _RequestScreenState extends State<RequestScreen> {
           field('Описание', _body, maxLines: 4),
           const SizedBox(height: 6),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder(), padding: const EdgeInsets.symmetric(vertical: 16)),
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder(), padding: EdgeInsets.symmetric(vertical: 16)),
             onPressed: _sending ? null : _send,
             child: Text(_sending ? 'ОТПРАВКА…' : 'ОТПРАВИТЬ', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
           ),
-          if (_msg != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_msg!, style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
+          if (_msg != null) Padding(padding: EdgeInsets.only(top: 12), child: Text(_msg!, style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
           const SizedBox(height: 18),
           groupHeader('МОИ ЗАЯВКИ'),
           FutureBuilder<List<Map<String, dynamic>>>(

@@ -11,7 +11,7 @@ Widget _scaffold(String title, Widget body) => Scaffold(
       body: body,
     );
 
-Widget _loading() => const Center(child: CircularProgressIndicator(color: kAccent));
+Widget _loading() => Center(child: CircularProgressIndicator(color: kAccent));
 Widget _empty(String t) => Center(child: Padding(padding: const EdgeInsets.all(24), child: Text(t, textAlign: TextAlign.center, style: const TextStyle(color: kMute, fontFamily: 'monospace'))));
 Widget _error(Object e) => Center(
     child: Padding(
@@ -174,7 +174,7 @@ class _ApplicationDetailScreenState extends State<ApplicationDetailScreen> {
                 const SizedBox(height: 20),
                 Row(children: [
                   Expanded(child: FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: kAccent2, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                    style: FilledButton.styleFrom(backgroundColor: kAccent2, foregroundColor: kBg, shape: RoundedRectangleBorder()),
                     onPressed: () => _decide('accepted'),
                     child: const Text('ПРИНЯТЬ', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                   )),

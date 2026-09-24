@@ -53,12 +53,12 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
             backgroundColor: kPanel,
-            title: const Text('Сдать смену', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            title: Text('Сдать смену', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               field('Отчёт по смене', report, maxLines: 3),
               Row(children: [
                 OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: const BorderSide(color: kAccent2), shape: const RoundedRectangleBorder()),
+                  style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: BorderSide(color: kAccent2), shape: RoundedRectangleBorder()),
                   onPressed: () async {
                     try {
                       final f = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
@@ -69,13 +69,13 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
                   label: const Text('ФОТО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(width: 10),
-                if (photo != null) const Expanded(child: Text('прикреплено', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
+                if (photo != null) Expanded(child: Text('прикреплено', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
               ]),
             ]),
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('СДАТЬ', style: TextStyle(fontFamily: 'monospace')),
               ),
@@ -102,7 +102,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
             backgroundColor: kPanel,
-            title: const Text('Замена смены', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            title: Text('Замена смены', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
             content: DropdownButtonFormField<int>(
               key: ValueKey('swap-$toId'),
               initialValue: toId,
@@ -118,7 +118,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Запросить', style: TextStyle(fontFamily: 'monospace')),
               ),
@@ -203,7 +203,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
             const SizedBox(height: 4),
             Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: kSub),
           ])),
-          Text(countdown, style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
+          Text(countdown, style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
         ]),
       ]),
     );
@@ -230,7 +230,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Row(children: [
-              TextButton(onPressed: () => _finish(s), child: const Text('✓ СДАТЬ СМЕНУ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
+              TextButton(onPressed: () => _finish(s), child: Text('✓ СДАТЬ СМЕНУ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
               const Spacer(),
               TextButton(onPressed: () => _swap(s), child: const Text('Замена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
             ]),
@@ -239,7 +239,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Row(children: [
-              TextButton(onPressed: () => _start(s), child: const Text('НАЧАТЬ СМЕНУ', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
+              TextButton(onPressed: () => _start(s), child: Text('НАЧАТЬ СМЕНУ', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
               if (started) TextButton(onPressed: () => _start(s), child: const Text('Неявка', style: TextStyle(color: kDanger, fontFamily: 'monospace'))),
               const Spacer(),
               TextButton(onPressed: () => _swap(s), child: const Text('Замена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
@@ -310,14 +310,14 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: kPanel,
-        title: Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: const TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+        title: Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
         content: Text(
             'Начало: ${s['start']}\nДлительность: ${s['duration']} ч\nПост: ${(s['post'] ?? '') == '' ? '—' : s['post']}\nСтатус: ${s['status_label']}${st != null ? '\n${_countdown(st, st.add(const Duration(hours: 12)), now)}' : ''}',
             style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Закрыть', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
           if (s['status'] == 'planned')
-            TextButton(onPressed: () { Navigator.pop(context); _swap(s); }, child: const Text('Замена', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+            TextButton(onPressed: () { Navigator.pop(context); _swap(s); }, child: Text('Замена', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
         ],
       ),
     );

@@ -42,7 +42,7 @@ class _NewsScreenState extends State<NewsScreen> {
                           border: n['pinned'] == true ? kAccent : kLine,
                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                             Row(children: [
-                              if (n['pinned'] == true) const Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.push_pin, size: 14, color: kAccent)),
+                              if (n['pinned'] == true) Padding(padding: EdgeInsets.only(right: 6), child: Icon(Icons.push_pin, size: 14, color: kAccent)),
                               Expanded(child: Text('${n['title']}', style: kTitle)),
                             ]),
                             const SizedBox(height: 4),
@@ -71,7 +71,7 @@ class NewsDetailScreen extends StatelessWidget {
           padding: const EdgeInsets.all(14),
           children: [
             card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text('${item['title']}', style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.bold)),
+              Text('${item['title']}', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.bold)),
               const SizedBox(height: 6),
               Text('${item['author'] ?? ''} · ${fmtDateTime(item['created_at'])}', style: kSub),
             ])),

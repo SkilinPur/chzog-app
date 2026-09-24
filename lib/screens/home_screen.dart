@@ -97,8 +97,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('ЧЗОГ · КАБИНЕТ${_ver.isEmpty ? '' : ' · v$_ver'}',
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2)),
+        title: const Text('ЧЗОГ · КАБИНЕТ', style: TextStyle(fontFamily: 'monospace', fontSize: 14, letterSpacing: 2)),
         actions: [
           IconButton(tooltip: 'Уведомления', onPressed: () => _open(NotificationsScreen(api: widget.api)), icon: _bell()),
           IconButton(tooltip: 'Обновить', onPressed: _refresh, icon: const Icon(Icons.refresh, color: kSoft)),
@@ -118,7 +117,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${user['login'] ?? ''}', style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('${user['login'] ?? ''}', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold)),
                     Text('${user['role'] ?? ''}${('${user['member'] ?? ''}').isEmpty ? '' : ' · ${user['member']}'}', style: kSub),
                   ]),
                 ),
@@ -142,7 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               card(
                 Row(children: [
-                  const Icon(Icons.schedule, color: kAccent),
+                  Icon(Icons.schedule, color: kAccent),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -160,10 +159,10 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(height: 12),
               card(
                 Row(children: [
-                  const Icon(Icons.cloud_off, color: kAccent2, size: 20),
+                  Icon(Icons.cloud_off, color: kAccent2, size: 20),
                   const SizedBox(width: 10),
-                  Expanded(child: Text('$_pending действий ждут сети', style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
-                  TextButton(onPressed: _sync, child: const Text('ОТПРАВИТЬ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
+                  Expanded(child: Text('$_pending действий ждут сети', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
+                  TextButton(onPressed: _sync, child: Text('ОТПРАВИТЬ', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontWeight: FontWeight.bold))),
                 ]),
               ),
             ],
@@ -171,23 +170,23 @@ class _HomeScreenState extends State<HomeScreen> {
             groupHeader('РАЗДЕЛЫ'),
             _tiles(perms),
             const SizedBox(height: 16),
-            creditFooter(),
+            creditFooter(_ver),
           ],
         ),
       ),
     );
   }
 
-  Widget _stat(String label, String value, IconData icon, VoidCallback onTap, {Color accent = kAccent}) => Expanded(
+  Widget _stat(String label, String value, IconData icon, VoidCallback onTap, {Color? accent}) => Expanded(
         child: InkWell(
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
             decoration: BoxDecoration(color: kPanel, border: Border.all(color: kLine)),
             child: Column(children: [
-              Icon(icon, size: 20, color: accent),
+              Icon(icon, size: 20, color: accent ?? kAccent),
               const SizedBox(height: 6),
-              Text(value, style: TextStyle(color: accent, fontFamily: 'monospace', fontSize: 16, fontWeight: FontWeight.bold)),
+              Text(value, style: TextStyle(color: accent ?? kAccent, fontFamily: 'monospace', fontSize: 16, fontWeight: FontWeight.bold)),
               const SizedBox(height: 2),
               Text(label, textAlign: TextAlign.center, style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 9, letterSpacing: 0.5)),
             ]),

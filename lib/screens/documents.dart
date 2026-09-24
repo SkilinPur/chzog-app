@@ -83,7 +83,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Row(children: [
                                   Expanded(child: Text('${d['num']} · ${d['title']}', style: kTitle)),
-                                  if (d['need_sign'] == true) Padding(padding: const EdgeInsets.only(right: 4), child: tag('НА ПОДПИСЬ', kAccent)),
+                                  if (d['need_sign'] == true) Padding(padding: EdgeInsets.only(right: 4), child: tag('НА ПОДПИСЬ', kAccent)),
                                   tag(_docStatus['${d['status']}'] ?? '${d['status']}', _stColor('${d['status']}')),
                                 ]),
                                 const SizedBox(height: 4),
@@ -155,7 +155,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
             padding: const EdgeInsets.all(14),
             children: [
               card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text('${d['num']}', style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('${d['num']}', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 Text('${d['title']}', style: kTitle),
                 const SizedBox(height: 8),
@@ -174,12 +174,12 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
               ])),
               if (('${d['file_url'] ?? ''}').isNotEmpty)
                 card(Row(children: [
-                  const Icon(Icons.picture_as_pdf_outlined, color: kAccent),
+                  Icon(Icons.picture_as_pdf_outlined, color: kAccent),
                   const SizedBox(width: 10),
                   const Expanded(child: Text('PDF-версия приказа', style: kTitle)),
                   TextButton(
                     onPressed: () => launchUrl(Uri.parse('https://chzog.iniproject.ru${d['file_url']}'), mode: LaunchMode.externalApplication),
-                    child: const Text('Открыть', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
+                    child: Text('Открыть', style: TextStyle(color: kAccent, fontFamily: 'monospace')),
                   ),
                 ])),
               groupHeader('ПОДПИСИ'),
@@ -193,7 +193,7 @@ class _DocumentDetailScreenState extends State<DocumentDetailScreen> {
               if (mine.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder(), padding: const EdgeInsets.symmetric(vertical: 16)),
+                  style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder(), padding: EdgeInsets.symmetric(vertical: 16)),
                   onPressed: () => _sign(mine.first['id'] as int, 'signed'),
                   child: const Text('ПОДПИСАТЬ', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
                 ),

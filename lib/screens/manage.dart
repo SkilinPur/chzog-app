@@ -14,7 +14,7 @@ Widget _scaffold(String title, Widget body) => Scaffold(
       body: body,
     );
 
-Widget _loading() => const Center(child: CircularProgressIndicator(color: kAccent));
+Widget _loading() => Center(child: CircularProgressIndicator(color: kAccent));
 Widget _empty(String t) => Center(child: Text(t, style: _muted));
 Widget _err(Object e) => Center(
       child: Padding(
@@ -122,7 +122,7 @@ class _ManageShiftsScreenState extends State<ManageShiftsScreen> {
                             await widget.api.mShiftStatus(s['id'] as int, 'done');
                             _reload();
                           },
-                          child: const Text('✓ Отработана', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12)),
+                          child: Text('✓ Отработана', style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12)),
                         ),
                         TextButton(
                           onPressed: () async {
@@ -175,7 +175,7 @@ class _ManagePassesScreenState extends State<ManagePassesScreen> {
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
             backgroundColor: kPanel,
-            title: const Text('Новый проход', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            title: Text('Новый проход', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
             content: SingleChildScrollView(
               child: Column(mainAxisSize: MainAxisSize.min, children: [
                 DropdownButtonFormField<int>(
@@ -216,7 +216,7 @@ class _ManagePassesScreenState extends State<ManagePassesScreen> {
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Сохранить', style: TextStyle(fontFamily: 'monospace')),
               ),
@@ -239,7 +239,7 @@ class _ManagePassesScreenState extends State<ManagePassesScreen> {
       Column(children: [
         Align(
           alignment: Alignment.centerRight,
-          child: Padding(padding: const EdgeInsets.all(8), child: IconButton(onPressed: _add, icon: const Icon(Icons.add, color: kAccent))),
+          child: Padding(padding: EdgeInsets.all(8), child: IconButton(onPressed: _add, icon: Icon(Icons.add, color: kAccent))),
         ),
         Expanded(
           child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -341,7 +341,7 @@ class _ManageIncidentsScreenState extends State<ManageIncidentsScreen> {
                               await widget.api.mIncidentClose(i['id'] as int);
                               _reload();
                             },
-                            child: const Text('Закрыть', style: TextStyle(color: kAccent2, fontFamily: 'monospace')),
+                            child: Text('Закрыть', style: TextStyle(color: kAccent2, fontFamily: 'monospace')),
                           ),
                       ]),
                     ]))).toList(),
@@ -608,7 +608,7 @@ class _ManageRequestsScreenState extends State<ManageRequestsScreen> {
                             await widget.api.mRequestDecide(r['id'] as int, 'approved');
                             _reload();
                           },
-                          child: const Text('Одобрить', style: TextStyle(color: kAccent2, fontFamily: 'monospace')),
+                          child: Text('Одобрить', style: TextStyle(color: kAccent2, fontFamily: 'monospace')),
                         ),
                         TextButton(
                           onPressed: () async {

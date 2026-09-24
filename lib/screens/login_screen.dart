@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 RichText(
                   textAlign: TextAlign.center,
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(fontFamily: 'monospace', fontSize: 34, letterSpacing: 6, fontWeight: FontWeight.bold),
                     children: [
                       TextSpan(text: 'Ч', style: TextStyle(color: kText)),

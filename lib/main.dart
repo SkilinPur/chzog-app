@@ -9,18 +9,25 @@ import 'screens/login_screen.dart';
 import 'theme.dart';
 import 'updater.dart';
 
-void main() => runApp(const ChzogApp());
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await ThemeService.load();
+  runApp(const ChzogApp());
+}
 
 class ChzogApp extends StatelessWidget {
   const ChzogApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'ЧЗОГ',
-      debugShowCheckedModeBanner: false,
-      theme: buildTheme(),
-      home: const RootGate(),
+    return ValueListenableBuilder<Color>(
+      valueListenable: ThemeService.accent,
+      builder: (_, c, __) => MaterialApp(
+        title: 'ЧЗОГ',
+        debugShowCheckedModeBanner: false,
+        theme: buildTheme(),
+        home: const RootGate(),
+      ),
     );
   }
 }
@@ -74,13 +81,13 @@ class _RootGateState extends State<RootGate> {
         builder: (ctx) => AlertDialog(
           backgroundColor: kPanel,
           title: Text(title.isEmpty ? 'Уведомление' : title,
-              style: const TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 16)),
+              style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 16)),
           content: SingleChildScrollView(
             child: Text('${b['body']}', style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13)),
           ),
           actions: [
             FilledButton(
-              style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+              style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
               onPressed: () => Navigator.pop(ctx),
               child: const Text('ПОНЯТНО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
             ),
@@ -94,7 +101,7 @@ class _RootGateState extends State<RootGate> {
   @override
   Widget build(BuildContext context) {
     if (_loading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator(color: kAccent)));
+      return Scaffold(body: Center(child: CircularProgressIndicator(color: kAccent)));
     }
     if (_summary == null) {
       return LoginScreen(api: _api, onLoggedIn: (_) => _check());

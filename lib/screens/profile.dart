@@ -62,7 +62,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: kPanel,
-        title: const Text('Смена пароля', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+        title: Text('Смена пароля', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
         content: Column(mainAxisSize: MainAxisSize.min, children: [
           _field('Текущий пароль', cur, obscure: true),
           _field('Новый пароль (мин. 8)', nw, obscure: true),
@@ -71,7 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Сменить', style: TextStyle(fontFamily: 'monospace')),
           ),
@@ -98,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         context: context,
         builder: (_) => AlertDialog(
           backgroundColor: kPanel,
-          title: const Text('Отключить 2FA', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+          title: Text('Отключить 2FA', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
           content: _field('Пароль', pw, obscure: true),
           actions: [
             TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
@@ -126,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: kPanel,
-        title: const Text('Включить 2FA', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+        title: Text('Включить 2FA', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
         content: SingleChildScrollView(
           child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
             const Text('Добавьте секрет в приложение-аутентификатор:', style: _sub),
@@ -141,7 +141,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
             onPressed: () async {
               try {
                 await widget.api.profile2fa('enable', code: code.text.trim());
@@ -165,7 +165,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
             backgroundColor: kPanel,
-            title: const Text('Часовой пояс', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            title: Text('Часовой пояс', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
             content: DropdownButtonFormField<String>(
               key: ValueKey('tz-$tz'),
               initialValue: zones.contains(tz) ? tz : (zones.isNotEmpty ? zones.first : null),
@@ -177,7 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Сохранить', style: TextStyle(fontFamily: 'monospace')),
               ),
@@ -200,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
             backgroundColor: kPanel,
-            title: const Text('Напоминание о смене', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            title: Text('Напоминание о смене', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
             content: Column(mainAxisSize: MainAxisSize.min, children: [
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
@@ -226,7 +226,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             actions: [
               TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
               FilledButton(
-                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
                 onPressed: () => Navigator.pop(ctx, true),
                 child: const Text('Сохранить', style: TextStyle(fontFamily: 'monospace')),
               ),
@@ -254,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: kPanel,
-        title: const Text('Привязка Telegram', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+        title: Text('Привязка Telegram', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
         content: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
           const Text('Отправьте боту команду:', style: _sub),
           const SizedBox(height: 6),
@@ -264,7 +264,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ]),
         actions: [
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder()),
             onPressed: () => Navigator.pop(context),
             child: const Text('Понятно', style: TextStyle(fontFamily: 'monospace')),
           ),
@@ -281,7 +281,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       body: FutureBuilder<Map<String, dynamic>>(
         future: _f,
         builder: (context, snap) {
-          if (snap.connectionState != ConnectionState.done) return const Center(child: CircularProgressIndicator(color: kAccent));
+          if (snap.connectionState != ConnectionState.done) return Center(child: CircularProgressIndicator(color: kAccent));
           if (snap.hasError) return Center(child: Text(snap.error is ApiException ? (snap.error as ApiException).message : 'Ошибка сети', style: const TextStyle(color: kDanger, fontFamily: 'monospace')));
           final d = snap.data ?? {};
           return ListView(
@@ -292,7 +292,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text('${d['avatar'] ?? '🧭'}', style: const TextStyle(fontSize: 34)),
                   const SizedBox(width: 12),
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text('${d['login']}', style: const TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold)),
+                    Text('${d['login']}', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 20, fontWeight: FontWeight.bold)),
                     Text('${d['role'] ?? ''}', style: _sub),
                   ])),
                 ]),
@@ -303,37 +303,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _kv('Допуск', '${d['clearance'] ?? '—'}'),
               ])),
               _card(Row(children: [
-                const Icon(Icons.password, color: kAccent, size: 18),
+                Icon(Icons.password, color: kAccent, size: 18),
                 const SizedBox(width: 10),
                 const Expanded(child: Text('Пароль', style: _title)),
-                TextButton(onPressed: _password, child: const Text('Сменить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+                TextButton(onPressed: _password, child: Text('Сменить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
               ])),
               _card(Row(children: [
                 Icon(d['totp'] == true ? Icons.verified_user : Icons.shield_outlined, color: d['totp'] == true ? kAccent2 : kSoft, size: 18),
                 const SizedBox(width: 10),
                 Expanded(child: Text('2FA: ${d['totp'] == true ? 'включена' : 'выключена'}', style: _title)),
-                TextButton(onPressed: () => _twofa(d), child: Text(d['totp'] == true ? 'Отключить' : 'Включить', style: const TextStyle(color: kAccent, fontFamily: 'monospace'))),
+                TextButton(onPressed: () => _twofa(d), child: Text(d['totp'] == true ? 'Отключить' : 'Включить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
               ])),
               _card(Row(children: [
-                const Icon(Icons.schedule, color: kAccent, size: 18),
+                Icon(Icons.schedule, color: kAccent, size: 18),
                 const SizedBox(width: 10),
                 Expanded(child: Text('Пояс: ${d['timezone'] ?? ''}', style: _title)),
-                TextButton(onPressed: () => _timezone(d), child: const Text('Изменить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+                TextButton(onPressed: () => _timezone(d), child: Text('Изменить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
               ])),
               _card(Row(children: [
-                const Icon(Icons.alarm, color: kAccent, size: 18),
+                Icon(Icons.alarm, color: kAccent, size: 18),
                 const SizedBox(width: 10),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   const Text('Напоминание о смене', style: _title),
                   Text(d['shift_reminder'] == true ? 'за ${d['shift_reminder_minutes']} мин' : 'выключено', style: _sub),
                 ])),
-                TextButton(onPressed: () => _reminder(d), child: const Text('Настроить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+                TextButton(onPressed: () => _reminder(d), child: Text('Настроить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+              ])),
+              const SizedBox(height: 8),
+              const Padding(
+                padding: EdgeInsets.only(top: 6, bottom: 8),
+                child: Text('ОФОРМЛЕНИЕ', style: TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11, letterSpacing: 2)),
+              ),
+              _card(Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                const Text('Акцентный цвет', style: _sub),
+                const SizedBox(height: 10),
+                Wrap(spacing: 10, runSpacing: 10, children: ThemeService.accents.entries.map((e) {
+                  final sel = ThemeService.accent.value == e.value;
+                  return GestureDetector(
+                    onTap: () => ThemeService.set(e.key),
+                    child: Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: e.value, shape: BoxShape.circle,
+                        border: sel ? Border.all(color: kText, width: 2) : Border.all(color: kLine),
+                      ),
+                    ),
+                  );
+                }).toList()),
               ])),
               _card(Row(children: [
-                const Icon(Icons.send_outlined, color: kAccent, size: 18),
+                Icon(Icons.send_outlined, color: kAccent, size: 18),
                 const SizedBox(width: 10),
                 Expanded(child: Text('Telegram: ${d['telegram'] == true ? 'привязан' : 'нет'}', style: _title)),
-                TextButton(onPressed: () => _telegram(d), child: Text(d['telegram'] == true ? 'Отвязать' : 'Привязать', style: const TextStyle(color: kAccent, fontFamily: 'monospace'))),
+                TextButton(onPressed: () => _telegram(d), child: Text(d['telegram'] == true ? 'Отвязать' : 'Привязать', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
               ])),
             ],
           );

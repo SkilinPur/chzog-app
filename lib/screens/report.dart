@@ -137,21 +137,21 @@ class _ReportScreenState extends State<ReportScreen> {
           const SizedBox(height: 14),
           Row(children: [
             OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: const BorderSide(color: kAccent2), shape: const RoundedRectangleBorder()),
+              style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: BorderSide(color: kAccent2), shape: RoundedRectangleBorder()),
               onPressed: _shoot,
               icon: const Icon(Icons.camera_alt, size: 18),
               label: const Text('ФОТО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 10),
-            if (_photoPath != null) const Expanded(child: Text('снимок прикреплён', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
+            if (_photoPath != null) Expanded(child: Text('снимок прикреплён', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
           ]),
           const SizedBox(height: 16),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder(), padding: const EdgeInsets.symmetric(vertical: 16)),
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder(), padding: EdgeInsets.symmetric(vertical: 16)),
             onPressed: _sending ? null : _send,
             child: Text(_sending ? 'ОТПРАВКА…' : 'ОТПРАВИТЬ', style: const TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
           ),
-          if (_msg != null) Padding(padding: const EdgeInsets.only(top: 12), child: Text(_msg!, style: const TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
+          if (_msg != null) Padding(padding: EdgeInsets.only(top: 12), child: Text(_msg!, style: TextStyle(color: kAccent2, fontFamily: 'monospace', fontSize: 12))),
         ],
       ),
     );
