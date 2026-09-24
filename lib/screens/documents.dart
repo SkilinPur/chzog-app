@@ -83,6 +83,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                 Row(children: [
                                   Expanded(child: Text('${d['num']} · ${d['title']}', style: kTitle)),
+                                  if (d['need_sign'] == true) Padding(padding: const EdgeInsets.only(right: 4), child: tag('НА ПОДПИСЬ', kAccent)),
                                   tag(_docStatus['${d['status']}'] ?? '${d['status']}', _stColor('${d['status']}')),
                                 ]),
                                 const SizedBox(height: 4),
