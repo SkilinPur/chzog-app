@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../security.dart';
 import '../theme.dart';
 
 const _title = TextStyle(color: kText, fontFamily: 'monospace', fontSize: 14, fontWeight: FontWeight.bold);
@@ -242,6 +243,102 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  String _lockLabel(String? m) => switch (m) {
+        'pin' => 'PIN-код',
+        'bio' => 'Биометрия',
+        _ => 'выключено',
+      };
+
+  Future<void> _lockSettings() async {
+    var mode = await AppLock.mode();
+    var mins = await AppLock.timeoutMinutes();
+    final hasBio = await AppLock.biometricsAvailable();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => StatefulBuilder(builder: (ctx, setD) => AlertDialog(
+            backgroundColor: kPanel,
+            title: Text('Блокировка приложения', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+            content: Column(mainAxisSize: MainAxisSize.min, children: [
+              DropdownButtonFormField<String>(
+                key: ValueKey('lm-$mode'),
+                initialValue: mode,
+                dropdownColor: kPanel,
+                decoration: const InputDecoration(labelText: 'Режим'),
+                items: const [
+                  DropdownMenuItem(value: 'off', child: Text('выключено', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 'pin', child: Text('PIN-код', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 'bio', child: Text('биометрия', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                ],
+                onChanged: (v) => setD(() => mode = v ?? 'off'),
+              ),
+              if (mode == 'bio' && !hasBio) const Padding(padding: EdgeInsets.only(top: 6), child: Text('Биометрия недоступна на этом устройстве', style: TextStyle(color: kDanger, fontFamily: 'monospace', fontSize: 11))),
+              const SizedBox(height: 10),
+              DropdownButtonFormField<int>(
+                key: ValueKey('lt-$mins'),
+                initialValue: mins,
+                dropdownColor: kPanel,
+                decoration: const InputDecoration(labelText: 'Автоблокировка'),
+                items: const [
+                  DropdownMenuItem(value: 0, child: Text('сразу при сворачивании', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 1, child: Text('через 1 минуту', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 5, child: Text('через 5 минут', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                  DropdownMenuItem(value: 15, child: Text('через 15 минут', style: TextStyle(fontFamily: 'monospace', fontSize: 13))),
+                ],
+                onChanged: (v) => setD(() => mins = v ?? 5),
+              ),
+            ]),
+            actions: [
+              if (mode == 'pin')
+                TextButton(onPressed: () async { if (await _setPinDialog()) Navigator.pop(ctx, true); }, child: const Text('Задать PIN', style: TextStyle(color: kAccent2, fontFamily: 'monospace'))),
+              TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+              FilledButton(
+                style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Сохранить', style: TextStyle(fontFamily: 'monospace')),
+              ),
+            ],
+          )),
+    );
+    if (ok != true) return;
+    if (mode == 'pin' && !await AppLock.isSet()) {
+      if (!await _setPinDialog()) return;
+    }
+    await AppLock.setMode(mode);
+    await AppLock.setTimeoutMinutes(mins);
+    if (mounted) setState(() {});
+  }
+
+  Future<bool> _setPinDialog() async {
+    final a = TextEditingController();
+    final b = TextEditingController();
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: kPanel,
+        title: Text('PIN-код', style: TextStyle(fontFamily: 'monospace', color: kAccent, fontSize: 15)),
+        content: Column(mainAxisSize: MainAxisSize.min, children: [
+          TextField(controller: a, obscureText: true, keyboardType: TextInputType.number, maxLength: 4, style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 18, letterSpacing: 8), decoration: const InputDecoration(labelText: '4 цифры')),
+          TextField(controller: b, obscureText: true, keyboardType: TextInputType.number, maxLength: 4, style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 18, letterSpacing: 8), decoration: const InputDecoration(labelText: 'Повторите')),
+        ]),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Отмена', style: TextStyle(color: kSoft, fontFamily: 'monospace'))),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: const RoundedRectangleBorder()),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Сохранить', style: TextStyle(fontFamily: 'monospace')),
+          ),
+        ],
+      ),
+    );
+    if (ok != true) return false;
+    if (a.text.length != 4 || a.text != b.text) {
+      if (mounted) _toast(context, 'PIN не совпадает или не 4 цифры', error: true);
+      return false;
+    }
+    await AppLock.setPin(a.text);
+    return true;
+  }
+
   Future<void> _telegram(Map<String, dynamic> d) async {
     if (d['telegram'] == true) {
       await widget.api.profileUnlink();
@@ -328,6 +425,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   Text(d['shift_reminder'] == true ? 'за ${d['shift_reminder_minutes']} мин' : 'выключено', style: _sub),
                 ])),
                 TextButton(onPressed: () => _reminder(d), child: Text('Настроить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
+              ])),
+              _card(Row(children: [
+                Icon(Icons.lock_outline, color: kAccent, size: 18),
+                const SizedBox(width: 10),
+                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Блокировка приложения', style: _title),
+                  FutureBuilder<String>(future: AppLock.mode(), builder: (_, sp) => Text(_lockLabel(sp.data), style: _sub)),
+                ])),
+                TextButton(onPressed: () => _lockSettings(), child: Text('Настроить', style: TextStyle(color: kAccent, fontFamily: 'monospace'))),
               ])),
               const SizedBox(height: 8),
               const Padding(

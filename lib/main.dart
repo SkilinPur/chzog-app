@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api.dart';
 import 'fcm.dart';
 import 'scan.dart';
+import 'security.dart';
+import 'screens/lock_screen.dart';
 import 'queue.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
@@ -40,19 +42,58 @@ class RootGate extends StatefulWidget {
   State<RootGate> createState() => _RootGateState();
 }
 
-class _RootGateState extends State<RootGate> {
+class _RootGateState extends State<RootGate> with WidgetsBindingObserver {
   final _api = ApiClient();
   bool _loading = true;
+  bool _locked = false;
+  bool _allowBio = false;
   Map<String, dynamic>? _summary;
 
   @override
   void initState() {
     super.initState();
-    _check();
+    WidgetsBinding.instance.addObserver(this);
+    _start();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) Updater.check(context);
     });
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _relockIfNeeded();
+    }
+  }
+
+  Future<void> _relockIfNeeded() async {
+    if (mounted && !_locked && _summary != null) {
+      final mode = await AppLock.mode();
+      final mins = await AppLock.timeoutMinutes();
+      if (mode != 'off' && await AppLock.isSet() && mins > 0) {
+        setState(() => _locked = true);
+      }
+    }
+  }
+
+  Future<void> _start() async {
+    final mode = await AppLock.mode();
+    if (mode != 'off' && await AppLock.isSet()) {
+      setState(() {
+        _locked = true;
+        _allowBio = mode == 'bio' ? true : false;
+      });
+    }
+    _check();
+  }
+
+  void _unlock() => setState(() => _locked = false);
 
   Future<void> _check() async {
     try {
@@ -104,6 +145,9 @@ class _RootGateState extends State<RootGate> {
   Widget build(BuildContext context) {
     if (_loading) {
       return Scaffold(body: Center(child: CircularProgressIndicator(color: kAccent)));
+    }
+    if (_locked) {
+      return LockScreen(allowBiometric: _allowBio, onUnlocked: _unlock);
     }
     if (_summary == null) {
       return LoginScreen(api: _api, onLoggedIn: (_) => _check());
