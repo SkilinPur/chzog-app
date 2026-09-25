@@ -9,6 +9,7 @@ import '../theme.dart';
 import '../ui.dart';
 import '../updater.dart';
 import 'documents.dart';
+import 'chat.dart';
 import 'locations.dart';
 import 'map.dart';
 import 'news.dart';
@@ -220,6 +221,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _tile('Смены', 'моё расписание', Icons.schedule, () => _open(ShiftsScreen(api: widget.api))),
         _tile('Проходы', 'вход / выход', Icons.login, () => _open(PassesScreen(api: widget.api))),
         _tile('Новости', 'лента и объявления', Icons.newspaper_outlined, () => _open(NewsScreen(api: widget.api))),
+        _tile('Чат', 'общий чат', Icons.forum_outlined, () => _open(ChatScreen(api: widget.api))),
         _tile('Уведомления', 'что нового', Icons.notifications_none, () => _open(NotificationsScreen(api: widget.api))),
       ]],
       ['ДЕЙСТВИЯ', <Widget>[
