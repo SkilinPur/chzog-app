@@ -203,11 +203,15 @@ class ApiClient {
 
   Future<void> registerDevice(String token) => _postJson('/api/device/register', {'token': token});
 
-  Future<Map<String, dynamic>> chatToken() async => (await _get('/api/chat/token')) as Map<String, dynamic>;
-
   Future<Map<String, dynamic>> chatRooms() async => (await _get('/api/chat/rooms')) as Map<String, dynamic>;
 
-  Future<String> chatDm(int memberId) async => ((await _get('/api/chat/dm/$memberId'))['room'] ?? '') as String;
+  Future<List<Map<String, dynamic>>> chatMessages(int room) async =>
+      ((await _get('/api/chat/messages?room=$room'))['items'] as List).cast<Map<String, dynamic>>();
+
+  Future<void> chatSend(int room, String body) => _postJson('/api/chat/send', {'room': room, 'body': body});
+
+  Future<int> chatDm(int memberId) async =>
+      ((await _postJson('/api/chat/dm', {'member_id': memberId}))['room'] ?? 0) as int;
 
   Future<void> position(double lat, double lng) => _postJson('/api/position', {'lat': lat, 'lng': lng});
 
