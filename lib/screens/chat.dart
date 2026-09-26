@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../api.dart';
+import '../fcm.dart';
 import '../theme.dart';
 import '../ui.dart';
 
@@ -35,6 +36,7 @@ class _ChatScreenState extends State<ChatScreen> {
   List<_Msg> _msgs = [];
   String? _err;
   Timer? _timer;
+  StreamSubscription? _sub;
   final _input = TextEditingController();
   final _scroll = ScrollController();
 
@@ -42,14 +44,27 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
     _init();
+    _sub = chatEvents.stream.listen(_onChatEvent);
   }
 
   @override
   void dispose() {
     _timer?.cancel();
+    _sub?.cancel();
+    currentChatRoom.value = 0;
     _input.dispose();
     _scroll.dispose();
     super.dispose();
+  }
+
+  void _onChatEvent(Map<String, dynamic> e) {
+    final r = int.tryParse('${e['room'] ?? ''}') ?? 0;
+    if (r == 0) return;
+    if (r == _selected) {
+      _sync();
+    } else if (!_rooms.any((x) => x.id == r)) {
+      _init();
+    }
   }
 
   Future<void> _init() async {
@@ -60,7 +75,10 @@ class _ChatScreenState extends State<ChatScreen> {
       final rooms = (r['rooms'] as List? ?? []).cast<Map<String, dynamic>>();
       _rooms.clear();
       _rooms.addAll(rooms.map((x) => _Room(x['id'] as int, x['name']?.toString() ?? '')));
-      if (_rooms.isNotEmpty) _selected = _rooms.first.id;
+      if (_rooms.isNotEmpty) {
+        _selected = _rooms.first.id;
+        currentChatRoom.value = _selected;
+      }
       await _sync();
       _timer = Timer.periodic(const Duration(seconds: 3), (_) => _sync());
       if (mounted) setState(() {});
@@ -89,6 +107,7 @@ class _ChatScreenState extends State<ChatScreen> {
         _rooms.add(_Room(room, '${m['name']}'));
       }
       setState(() => _selected = room);
+      currentChatRoom.value = room;
       await _sync();
     } catch (e) {
       if (mounted) toast(context, '$e', error: true);
@@ -148,7 +167,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           Padding(
                             padding: const EdgeInsets.only(right: 6, top: 6),
                             child: GestureDetector(
-                              onTap: () { setState(() => _selected = r.id); _sync(); },
+                              onTap: () { setState(() => _selected = r.id); currentChatRoom.value = r.id; _sync(); },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
