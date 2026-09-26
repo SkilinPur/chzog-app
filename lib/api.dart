@@ -205,6 +205,10 @@ class ApiClient {
 
   Future<Map<String, dynamic>> chatToken() async => (await _get('/api/chat/token')) as Map<String, dynamic>;
 
+  Future<Map<String, dynamic>> chatRooms() async => (await _get('/api/chat/rooms')) as Map<String, dynamic>;
+
+  Future<String> chatDm(int memberId) async => ((await _get('/api/chat/dm/$memberId'))['room'] ?? '') as String;
+
   Future<void> position(double lat, double lng) => _postJson('/api/position', {'lat': lat, 'lng': lng});
 
   Future<Map<String, dynamic>?> broadcast() async {
