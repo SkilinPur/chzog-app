@@ -164,7 +164,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   Expanded(
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('БЛИЖАЙШАЯ СМЕНА', style: TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11, letterSpacing: 1)),
-                      Text('${nextShift['day']} · ${nextShift['shift'] == 'night' ? 'ночная' : 'дневная'} · начало ${nextShift['start']}',
+                      Text('${nextShift['day']} · ${nextShift['shift'] == 'night' ? 'ночная' : 'дневная'} · ${nextShift['start']}–${nextShift['end']}',
                           style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13)),
                     ]),
                   ),

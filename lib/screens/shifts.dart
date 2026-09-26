@@ -201,7 +201,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text('${s['day']} · ${night ? 'ночная' : 'дневная'}', style: kTitle.copyWith(fontSize: 16)),
             const SizedBox(height: 4),
-            Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: kSub),
+            Text('${s['start']}–${s['end']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: kSub),
           ])),
           Text(countdown, style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 12, fontWeight: FontWeight.bold)),
         ]),
@@ -224,7 +224,7 @@ class _ShiftsScreenState extends State<ShiftsScreen> {
           tag('${s['status_label'] ?? s['status']}', shiftColor('${s['status']}')),
         ]),
         const SizedBox(height: 6),
-        Text('начало ${s['start']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: kSub),
+        Text('${s['start']}–${s['end']} · ${s['duration']} ч${(s['post'] ?? '') != '' ? ' · ${s['post']}' : ''}', style: kSub),
         if (mates.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 4), child: Text('в смене: ${mates.join(', ')}', style: kSub)),
         if (s['status'] == 'on_shift')
           Padding(
