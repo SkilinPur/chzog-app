@@ -27,26 +27,37 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = InMemoryChatController();
+  final _composer = TextEditingController();
   final List<_Room> _rooms = [];
   List<Map<String, dynamic>> _members = [];
   final Map<String, String> _names = {};
+  List<Map<String, dynamic>> _online = [];
   int _me = 0;
   int _selected = 0;
   String? _err;
+  String? _typingName;
+  DateTime _lastTyping = DateTime.fromMillisecondsSinceEpoch(0);
 
   Client? _client;
   final Map<int, Subscription> _subs = {};
+  Timer? _presenceTimer;
+  Timer? _typingTimer;
 
   @override
   void initState() {
     super.initState();
-    _init();
+    _composer.addListener(_onComposerChanged);
     chatEvents.stream.listen(_onChatEvent);
+    _init();
   }
 
   @override
   void dispose() {
     currentChatRoom.value = 0;
+    _presenceTimer?.cancel();
+    _typingTimer?.cancel();
+    _composer.removeListener(_onComposerChanged);
+    _composer.dispose();
     for (final s in _subs.values) {
       s.unsubscribe();
     }
@@ -73,6 +84,8 @@ class _ChatScreenState extends State<ChatScreen> {
       }
       await _loadHistory();
       _connectRealtime(r['rt']);
+      _presenceTimer = Timer.periodic(const Duration(seconds: 10), (_) => _loadPresence());
+      _loadPresence();
       if (mounted) setState(() {});
     } catch (e) {
       if (mounted) setState(() => _err = '$e');
@@ -101,9 +114,28 @@ class _ChatScreenState extends State<ChatScreen> {
   void _onPub(int room, PublicationEvent e) {
     try {
       final d = jsonDecode(utf8.decode(e.data)) as Map<String, dynamic>;
+      if (d['type'] == 'typing') {
+        _handleTyping(room, d);
+        return;
+      }
       if ((d['room'] ?? 0) != room) return;
       _upsert(room, d);
     } catch (_) {}
+  }
+
+  void _handleTyping(int room, Map<String, dynamic> d) {
+    if (room != _selected) return;
+    final sid = d['sender_id'];
+    if (sid == _me) return;
+    if (d['typing'] == true) {
+      setState(() => _typingName = d['sender']?.toString());
+      _typingTimer?.cancel();
+      _typingTimer = Timer(const Duration(seconds: 3), () {
+        if (mounted) setState(() => _typingName = null);
+      });
+    } else if (_typingName == d['sender']) {
+      if (mounted) setState(() => _typingName = null);
+    }
   }
 
   void _onChatEvent(Map<String, dynamic> e) {
@@ -147,18 +179,43 @@ class _ChatScreenState extends State<ChatScreen> {
     }).toList());
   }
 
+  Future<void> _loadPresence() async {
+    if (_selected == 0) return;
+    try {
+      final online = await widget.api.chatPresence(_selected);
+      if (mounted) setState(() => _online = online);
+    } catch (_) {}
+  }
+
   Future<void> _selectRoom(int id) async {
     if (id == _selected) return;
     setState(() {
       _selected = id;
       currentChatRoom.value = id;
+      _typingName = null;
     });
     await _loadHistory();
+    _loadPresence();
+  }
+
+  void _onComposerChanged() {
+    final now = DateTime.now();
+    if (now.difference(_lastTyping).inSeconds < 2) return;
+    _lastTyping = now;
+    _sendTyping(_composer.text.trim().isNotEmpty);
+  }
+
+  Future<void> _sendTyping(bool typing) async {
+    if (_selected == 0) return;
+    try {
+      await widget.api.chatTyping(_selected, typing);
+    } catch (_) {}
   }
 
   Future<void> _send(String text) async {
     final body = text.trim();
     if (body.isEmpty || _selected == 0) return;
+    _sendTyping(false);
     final res = await widget.api.chatSend(_selected, body);
     final id = res['id'];
     if (id != null) {
@@ -255,16 +312,52 @@ class _ChatScreenState extends State<ChatScreen> {
                       ],
                     ),
                   ),
+                  _statusBar(),
                   Expanded(
                     child: Chat(
                       chatController: _controller,
                       currentUserId: '$_me',
                       theme: ChatTheme.dark(fontFamily: 'monospace'),
+                      builders: Builders(
+                        composerBuilder: (context) => Composer(
+                          hintText: 'Сообщение',
+                          textEditingController: _composer,
+                          sendOnEnter: true,
+                        ),
+                      ),
                       onMessageSend: (text) => _send(text),
                       resolveUser: (id) async => User(id: id, name: _names[id] ?? 'Участник'),
                     ),
                   ),
                 ])),
+    );
+  }
+
+  Widget _statusBar() {
+    final names = _online.where((o) => o['me'] != true).map((o) => o['name']?.toString() ?? '').where((s) => s.isNotEmpty).toList();
+    final meOnline = _online.any((o) => o['me'] == true);
+    return SizedBox(
+      height: 26,
+      child: Row(children: [
+        const SizedBox(width: 12),
+        Icon(Icons.circle, size: 8, color: kAccent2),
+        const SizedBox(width: 5),
+        Text('${_online.length}', style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: names.isEmpty
+              ? Text(meOnline ? 'только вы' : 'нет никого онлайн', style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11))
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Text(names.join(', '), style: const TextStyle(color: kSoft, fontFamily: 'monospace', fontSize: 11), overflow: TextOverflow.ellipsis),
+                ),
+        ),
+        if (_typingName != null)
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Text('$_typingName печатает…', style: TextStyle(color: kAccent, fontFamily: 'monospace', fontSize: 11)),
+          ),
+      ]),
     );
   }
 }

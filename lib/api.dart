@@ -213,6 +213,11 @@ class ApiClient {
   Future<int> chatDm(int memberId) async =>
       ((await _postJson('/api/chat/dm', {'member_id': memberId}))['room'] ?? 0) as int;
 
+  Future<List<Map<String, dynamic>>> chatPresence(int room) async =>
+      ((await _get('/api/chat/presence?room=$room'))['online'] as List).cast<Map<String, dynamic>>();
+
+  Future<void> chatTyping(int room, bool typing) => _postJson('/api/chat/typing', {'room': room, 'typing': typing});
+
   Future<void> position(double lat, double lng) => _postJson('/api/position', {'lat': lat, 'lng': lng});
 
   Future<Map<String, dynamic>?> broadcast() async {
