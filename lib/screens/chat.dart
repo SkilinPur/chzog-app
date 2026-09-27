@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 
+import 'package:centrifuge/centrifuge.dart' hide State;
 import 'package:flutter/material.dart';
+import 'package:flutter_chat_core/flutter_chat_core.dart';
+import 'package:flutter_chat_ui/flutter_chat_ui.dart';
 
 import '../api.dart';
 import '../fcm.dart';
@@ -13,13 +17,6 @@ class _Room {
   _Room(this.id, this.name);
 }
 
-class _Msg {
-  final String sender;
-  final String body;
-  final bool mine;
-  _Msg(this.sender, this.body, this.mine);
-}
-
 class ChatScreen extends StatefulWidget {
   final ApiClient api;
   const ChatScreen({super.key, required this.api});
@@ -29,42 +26,33 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
+  final _controller = InMemoryChatController();
   final List<_Room> _rooms = [];
   List<Map<String, dynamic>> _members = [];
+  final Map<String, String> _names = {};
   int _me = 0;
   int _selected = 0;
-  List<_Msg> _msgs = [];
   String? _err;
-  Timer? _timer;
-  StreamSubscription? _sub;
-  final _input = TextEditingController();
-  final _scroll = ScrollController();
+
+  Client? _client;
+  final Map<int, Subscription> _subs = {};
 
   @override
   void initState() {
     super.initState();
     _init();
-    _sub = chatEvents.stream.listen(_onChatEvent);
+    chatEvents.stream.listen(_onChatEvent);
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _sub?.cancel();
     currentChatRoom.value = 0;
-    _input.dispose();
-    _scroll.dispose();
-    super.dispose();
-  }
-
-  void _onChatEvent(Map<String, dynamic> e) {
-    final r = int.tryParse('${e['room'] ?? ''}') ?? 0;
-    if (r == 0) return;
-    if (r == _selected) {
-      _sync();
-    } else if (!_rooms.any((x) => x.id == r)) {
-      _init();
+    for (final s in _subs.values) {
+      s.unsubscribe();
     }
+    _client?.disconnect();
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _init() async {
@@ -72,6 +60,10 @@ class _ChatScreenState extends State<ChatScreen> {
       final r = await widget.api.chatRooms();
       _me = (r['me'] ?? 0) as int;
       _members = (r['members'] as List? ?? []).cast<Map<String, dynamic>>();
+      _names.clear();
+      for (final m in _members) {
+        _names['${m['id']}'] = '${m['name']}';
+      }
       final rooms = (r['rooms'] as List? ?? []).cast<Map<String, dynamic>>();
       _rooms.clear();
       _rooms.addAll(rooms.map((x) => _Room(x['id'] as int, x['name']?.toString() ?? '')));
@@ -79,24 +71,106 @@ class _ChatScreenState extends State<ChatScreen> {
         _selected = _rooms.first.id;
         currentChatRoom.value = _selected;
       }
-      await _sync();
-      _timer = Timer.periodic(const Duration(seconds: 3), (_) => _sync());
+      await _loadHistory();
+      _connectRealtime(r['rt']);
       if (mounted) setState(() {});
     } catch (e) {
       if (mounted) setState(() => _err = '$e');
     }
   }
 
-  Future<void> _sync() async {
-    if (_selected == 0) return;
+  Future<void> _connectRealtime(Map<String, dynamic>? rt) async {
+    if (rt == null || (rt['token'] ?? '').toString().isEmpty) return;
+    final url = rt['url']?.toString() ?? '';
+    final token = rt['token']?.toString() ?? '';
+    if (url.isEmpty || token.isEmpty) return;
     try {
-      final items = await widget.api.chatMessages(_selected);
-      if (mounted) {
-        setState(() => _msgs = items
-            .map((e) => _Msg(e['sender']?.toString() ?? '', e['body']?.toString() ?? '', (e['sender_id'] ?? 0) == _me))
-            .toList());
+      final c = createClient(url, ClientConfig(token: token));
+      _client = c;
+      c.error.listen((_) {});
+      for (final room in _rooms) {
+        final sub = c.newSubscription('chat${room.id}');
+        _subs[room.id] = sub;
+        sub.publication.listen((e) => _onPub(room.id, e));
+        sub.subscribe();
       }
+      await c.connect();
     } catch (_) {}
+  }
+
+  void _onPub(int room, PublicationEvent e) {
+    try {
+      final d = jsonDecode(utf8.decode(e.data)) as Map<String, dynamic>;
+      if ((d['room'] ?? 0) != room) return;
+      _upsert(room, d);
+    } catch (_) {}
+  }
+
+  void _onChatEvent(Map<String, dynamic> e) {
+    final room = int.tryParse('${e['room'] ?? ''}') ?? 0;
+    if (room == 0) return;
+    if (room == _selected) {
+      _upsert(room, e);
+    } else if (!_rooms.any((x) => x.id == room)) {
+      _init();
+    }
+  }
+
+  void _upsert(int room, Map<String, dynamic> d) {
+    final id = '${d['id'] ?? ''}';
+    if (id.isEmpty) return;
+    if (room != _selected) return;
+    final existing = _controller.messages.any((m) => m.id == id);
+    if (existing) return;
+    _controller.insertMessage(
+      TextMessage(
+        id: id,
+        authorId: '${d['sender_id'] ?? 0}',
+        createdAt: DateTime.tryParse('${d['at'] ?? ''}')?.toLocal() ?? DateTime.now(),
+        text: '${d['body'] ?? ''}',
+      ),
+    );
+  }
+
+  Future<void> _loadHistory() async {
+    if (_selected == 0) return;
+    final items = await widget.api.chatMessages(_selected);
+    _controller.setMessages(items.map((e) {
+      final senderId = '${e['sender_id'] ?? 0}';
+      _names[senderId] = e['sender']?.toString() ?? _names[senderId] ?? '';
+      return TextMessage(
+        id: '${e['id']}',
+        authorId: senderId,
+        createdAt: DateTime.tryParse('${e['at'] ?? ''}')?.toLocal() ?? DateTime.now(),
+        text: e['body']?.toString() ?? '',
+      );
+    }).toList());
+  }
+
+  Future<void> _selectRoom(int id) async {
+    if (id == _selected) return;
+    setState(() {
+      _selected = id;
+      currentChatRoom.value = id;
+    });
+    await _loadHistory();
+  }
+
+  Future<void> _send(String text) async {
+    final body = text.trim();
+    if (body.isEmpty || _selected == 0) return;
+    final res = await widget.api.chatSend(_selected, body);
+    final id = res['id'];
+    if (id != null) {
+      _controller.insertMessage(
+        TextMessage(
+          id: '$id',
+          authorId: '$_me',
+          createdAt: DateTime.now(),
+          text: body,
+        ),
+      );
+    }
   }
 
   Future<void> _openDm(Map<String, dynamic> m) async {
@@ -105,10 +179,14 @@ class _ChatScreenState extends State<ChatScreen> {
       if (room == 0) return;
       if (!_rooms.any((r) => r.id == room)) {
         _rooms.add(_Room(room, '${m['name']}'));
+        final sub = _client?.newSubscription('chat$room');
+        if (sub != null) {
+          _subs[room] = sub;
+          sub.publication.listen((e) => _onPub(room, e));
+          sub.subscribe();
+        }
       }
-      setState(() => _selected = room);
-      currentChatRoom.value = room;
-      await _sync();
+      await _selectRoom(room);
     } catch (e) {
       if (mounted) toast(context, '$e', error: true);
     }
@@ -136,18 +214,6 @@ class _ChatScreenState extends State<ChatScreen> {
     );
   }
 
-  Future<void> _send() async {
-    final text = _input.text.trim();
-    if (text.isEmpty || _selected == 0) return;
-    try {
-      await widget.api.chatSend(_selected, text);
-      _input.clear();
-      await _sync();
-    } catch (e) {
-      if (mounted) toast(context, '$e', error: true);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return screen(
@@ -167,7 +233,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           Padding(
                             padding: const EdgeInsets.only(right: 6, top: 6),
                             child: GestureDetector(
-                              onTap: () { setState(() => _selected = r.id); currentChatRoom.value = r.id; _sync(); },
+                              onTap: () => _selectRoom(r.id),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 decoration: BoxDecoration(
@@ -190,47 +256,13 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.builder(
-                      controller: _scroll,
-                      reverse: true,
-                      padding: const EdgeInsets.all(12),
-                      itemCount: _msgs.length,
-                      itemBuilder: (_, i) {
-                        final m = _msgs[_msgs.length - 1 - i];
-                        return Align(
-                          alignment: m.mine ? Alignment.centerRight : Alignment.centerLeft,
-                          child: Container(
-                            margin: const EdgeInsets.symmetric(vertical: 3),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: m.mine ? kAccent.withValues(alpha: 0.2) : kPanel,
-                              border: Border.all(color: m.mine ? kAccent : kLine),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                              Text(m.body, style: const TextStyle(color: kText, fontFamily: 'monospace', fontSize: 13)),
-                              const SizedBox(height: 2),
-                              Text(m.mine ? 'вы' : m.sender, style: kMuted),
-                            ]),
-                          ),
-                        );
-                      },
+                    child: Chat(
+                      chatController: _controller,
+                      currentUserId: '$_me',
+                      theme: ChatTheme.dark(fontFamily: 'monospace'),
+                      onMessageSend: (text) => _send(text),
+                      resolveUser: (id) async => User(id: id, name: _names[id] ?? 'Участник'),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Row(children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _input,
-                          style: const TextStyle(fontFamily: 'monospace', color: kText, fontSize: 13),
-                          decoration: const InputDecoration(labelText: 'Сообщение', isDense: true),
-                          onSubmitted: (_) => _send(),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(onPressed: _send, icon: Icon(Icons.send, color: kAccent)),
-                    ]),
                   ),
                 ])),
     );
