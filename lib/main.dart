@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:material_ui/material_ui.dart' show GlobalMaterialLocalizations;
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart' as material_ui;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'api.dart';
@@ -30,7 +31,10 @@ class ChzogApp extends StatelessWidget {
         title: 'ЧЗОГ',
         debugShowCheckedModeBanner: false,
         theme: buildTheme(),
-        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          ...material_ui.GlobalMaterialLocalizations.delegates,
+        ],
         supportedLocales: const [Locale('ru', 'RU'), Locale('en', 'US')],
         home: const RootGate(),
       ),
