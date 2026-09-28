@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -40,12 +42,12 @@ class _ReportScreenState extends State<ReportScreen> {
     super.dispose();
   }
 
-  Future<void> _shoot() async {
+  Future<void> _pickPhoto(ImageSource source) async {
     try {
-      final file = await ImagePicker().pickImage(source: ImageSource.camera, maxWidth: 1600, imageQuality: 80);
+      final file = await ImagePicker().pickImage(source: source, maxWidth: 1600, imageQuality: 80);
       if (file != null && mounted) setState(() => _photoPath = file.path);
     } catch (e) {
-      if (mounted) setState(() => _msg = 'Камера недоступна: $e');
+      if (mounted) setState(() => _msg = 'Недоступно: $e');
     }
   }
 
@@ -138,13 +140,34 @@ class _ReportScreenState extends State<ReportScreen> {
           Row(children: [
             OutlinedButton.icon(
               style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: BorderSide(color: kAccent2), shape: RoundedRectangleBorder()),
-              onPressed: _shoot,
+              onPressed: () => _pickPhoto(ImageSource.camera),
               icon: const Icon(Icons.camera_alt, size: 18),
-              label: const Text('ФОТО', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+              label: const Text('СФОТКАТЬ', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
             ),
             const SizedBox(width: 10),
-            if (_photoPath != null) Expanded(child: Text('снимок прикреплён', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
+            OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: kAccent2, side: BorderSide(color: kAccent2), shape: RoundedRectangleBorder()),
+              onPressed: () => _pickPhoto(ImageSource.gallery),
+              icon: const Icon(Icons.photo_library_outlined, size: 18),
+              label: const Text('ГАЛЕРЕЯ', style: TextStyle(fontFamily: 'monospace', fontWeight: FontWeight.bold)),
+            ),
           ]),
+          if (_photoPath != null) ...[
+            const SizedBox(height: 12),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.file(File(_photoPath!), width: 96, height: 96, fit: BoxFit.cover),
+              ),
+              const SizedBox(width: 12),
+              Expanded(child: Text('фото прикреплено', style: TextStyle(fontFamily: 'monospace', color: kAccent2, fontSize: 12))),
+              IconButton(
+                onPressed: () => setState(() => _photoPath = null),
+                icon: const Icon(Icons.close, color: kDanger, size: 20),
+                tooltip: 'Убрать фото',
+              ),
+            ]),
+          ],
           const SizedBox(height: 16),
           FilledButton(
             style: FilledButton.styleFrom(backgroundColor: kAccent, foregroundColor: kBg, shape: RoundedRectangleBorder(), padding: EdgeInsets.symmetric(vertical: 16)),
